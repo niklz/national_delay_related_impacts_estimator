@@ -16,20 +16,13 @@ require(ggrepel)
 source("utils.R")
 
 # Read data
-# Impacts
 ae_impacts <- readRDS("data/ae_impacts.RDS")
-# Shape files
 region_plot <- readRDS("data/region_plot.RDS")
 cluster_shp <- readRDS("data/cluster_shp_simple.RDS")
 
-
-
-
 ui <- page_sidebar(
-  options = list(shiny.busyIndicators = FALSE),
-
   title = "NHS National A&E Delay-Related Impacts Dashboard",
-
+  
   theme = bs_theme(
     version = 5,
     bg = "#ffffff",
@@ -37,63 +30,73 @@ ui <- page_sidebar(
     primary = "#003087",
     base_font = font_google("Inter", wght = c(400, 500))
   ),
-
+  
   tags$head(
-    tags$style(HTML(
-      "
-      /* Sidebar */
+    tags$style(HTML("
+      /* Sidebar styling */
       .bslib-sidebar-layout > .sidebar {
-        background-color: #f4f4f4 !important;
+        background-color: #f8f9fa !important;
         border-right: 1px solid #e9ecef !important;
       }
-
-      /* Flat, borderless cards */
-      .no-border {
+      
+      /* Remove all card styling - make them invisible containers */
+      .card {
         border: none !important;
         box-shadow: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
       }
-      .card {
-        border: 0.5px solid #e0e0e0 !important;
-        box-shadow: none !important;
-        border-radius: 8px !important;
+      .card-body {
+        padding: 0 !important;
       }
-
-      /* Tidy up radio buttons in sidebar */
-      .shiny-input-container label { font-weight: 500; }
-      .radio label { font-size: 14px; color: #333; }
-
-      /* girafe fills its container */
-      .girafe_container_std { width: 100% !important; }
       
-      $(document).on('shiny:busy', function(e) { e.preventDefault(); });
-    "
-    )),
+      /* Tighten the main content area */
+      .bslib-sidebar-layout > .main {
+        padding: 0.5rem !important;
+      }
+      
+      /* Reduce gap between plot columns */
+      .bslib-grid {
+        gap: 0.5rem !important;
+      }
+      
+      /* Ensure girafe plots fill space */
+      .girafe_container_std { 
+        width: 100% !important; 
+      }
+      
+      /* Clean up sidebar inputs */
+      .shiny-input-container label { 
+        font-weight: 500; 
+      }
+      .radio label { 
+        font-size: 14px; 
+        color: #333; 
+      }
+      
+      /* Title bar cleanup */
+      .navbar {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+      }
+    "))
   ),
-
+  
   sidebar = sidebar(
     width = 250,
-    bg = "#f4f4f4",
-    padding = "20px"
+    bg = "#f8f9fa",
+    padding = "1rem"
   ),
-
-
+  
   layout_column_wrap(
     width = 1/3,
-    card(
-      girafeOutput("time_series_plot", height = "400px")
-      # card_header(""),
-    ),
-    card(
-      # card_header(""),
-      girafeOutput("choropleth", height = "400px")
-    ),
-    card(
-      # card_header(""),
-      girafeOutput("funnel_plot", height = "400px")
-    )
+    gap = "0.5rem",
+    heights_equal = "row",
+    girafeOutput("time_series_plot", height = "450px"),
+    girafeOutput("choropleth", height = "450px"),
+    girafeOutput("funnel_plot", height = "450px")
   )
 )
-
 
 server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
@@ -101,27 +104,19 @@ server <- function(input, output, session) {
     girafe(
       ggobj = p,
       options = list(
-        # Keep the hovered item normal
         opts_hover(css = "stroke-width:1.5px; stroke:white;"),
-        # Fade everything else out (lower opacity)
         opts_hover_inv(css = "opacity:0.2; transition: opacity 0.3s;"),
         opts_tooltip(
-          css = "background-color:white;color:black;padding:5px;border-radius:5px;font-family:sans-serif;"
+          css = "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.15);"
         ),
         opts_toolbar(saveaspng = FALSE),
-        opts_selection(
-          css = NULL,
-          type = c("none"),
-          only_shiny = TRUE,
-          selected = character(0),
-          linked = FALSE
-        )
+        opts_selection(type = "none")
       ),
-      width_svg = 9,
-      height_svg = 7
+      width_svg = 8,
+      height_svg = 6
     )
   })
-
+  
   output$time_series_plot <- renderGirafe({
     p <- time_series_plot(ae_impacts, region_plot)
     girafe(
@@ -135,52 +130,36 @@ server <- function(input, output, session) {
         top = 1
       ),
       options = list(
-        # This CSS makes the hovered region/line fully opaque and "pops" it
         opts_hover(
           css = "opacity:1.0; fill-opacity:1.0; stroke-width:3px; transition: all 0.3s ease-in-out;"
         ),
         opts_tooltip(
-          css = "background-color:white;color:black;padding:5px;border-radius:5px;font-family:sans-serif;"
+          css = "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.15);"
         ),
-        # This dims everything else so the hovered region stands out
         opts_hover_inv(css = "opacity:0.05;"),
         opts_toolbar(saveaspng = FALSE),
-        opts_selection(
-          css = NULL,
-          type = c("none"),
-          only_shiny = TRUE,
-          selected = character(0),
-          linked = FALSE
-        )
+        opts_selection(type = "none")
       ),
-      width_svg = 9,
-      height_svg = 7
+      width_svg = 8,
+      height_svg = 6
     )
   })
-
+  
   output$choropleth <- renderGirafe({
     p <- choropleth_plot(ae_impacts, cluster_shp)
     girafe(
       ggobj = p,
       options = list(
-        # Keep the hovered item normal
         opts_hover(css = "stroke-width:1.5px; stroke:white;"),
-        # Fade everything else out (lower opacity)
         opts_hover_inv(css = "opacity:0.2; transition: opacity 0.3s;"),
         opts_tooltip(
-          css = "background-color:white;color:black;padding:5px;border-radius:5px;font-family:sans-serif;"
+          css = "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.15);"
         ),
         opts_toolbar(saveaspng = FALSE),
-        opts_selection(
-          css = NULL,
-          type = c("none"),
-          only_shiny = TRUE,
-          selected = character(0),
-          linked = FALSE
-        )
+        opts_selection(type = "none")
       ),
-      width_svg = 9,
-      height_svg = 7
+      width_svg = 8,
+      height_svg = 6
     )
   })
 }

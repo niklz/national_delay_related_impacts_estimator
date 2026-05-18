@@ -36,7 +36,6 @@ round_denom <- function(val, round = 25) {
 # ==========================================
 
 funnel_plot <- function(data, base = 11, wrap = 40) {
-
   over_dispertion <- 3
   line_breaks <- c("95%" = 1.96, "99.7%" = 3)
 
@@ -54,7 +53,7 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       rate_bin = str_c("1 in ", denom),
       bin_numeric = 1 / as.numeric(str_extract(rate_bin, "\\d+")),
       precise_denom = round(1 / rate),
-      tooltip = paste0(org, "\nRate: 1 in ", precise_denom)
+      tooltip = paste0(org, ", ", format(period, "%Y %B"), "\n", scales::comma(round(excess_mort)), " delay-related deaths", "\nRate: 1 in ", precise_denom, " admissions")
     )
 
   mu <- sum(plot_data$excess_mort) / sum(plot_data$tot_ae_adm)
@@ -92,9 +91,9 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
     ggplot2::geom_line(
       data = funnel_lines,
       ggplot2::aes(y = upper, group = label),
-      color = "black",
+      color = "gray60",
       linetype = "dashed",
-      alpha = 0.4
+      alpha = 1
     ) +
     ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
     ggplot2::annotate(
@@ -108,15 +107,29 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       size = base * 0.8 / 2.83464, # Matches ggplot text sizing down to baseline scale
       fontface = "italic"
     ) +
+    ggplot2::annotate(
+      "text",
+      x = Inf,
+      y = Inf,
+      colour = "grey60",
+      label = str_wrap(
+        "Dashed lines represent control limits, which define the range of expected variation with hospital volume.",
+        wrap * 0.6
+      ),
+      hjust = 1, # Flipped to inside the plot canvas so it doesn't require clip expansion
+      vjust = 1.5,
+      size = base * 0.8 / 2.83464, # Matches ggplot text sizing down to baseline scale
+      fontface = "italic"
+    ) +
     ggiraph::geom_point_interactive(
       aes(tooltip = tooltip),
       size = 2.5,
       alpha = 0.6
     ) +
-ggplot2::labs(
+    ggplot2::labs(
       title = str_wrap("Delay-related deaths per trust", wrap),
       # Combine subtitle and caption text using a newline (\n)
-      subtitle = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
+      # subtitle = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
       x = "Total type-1 A&E Admissions",
       y = NULL, #"Expected delay-related deaths per 1000 admission",
       colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
@@ -126,6 +139,7 @@ ggplot2::labs(
     }) +
     scale_x_continuous(labels = scales::comma) +
     scale_colour_stepsn(
+      n.breaks = 5,
       colors = as.character(base_colors),
       # breaks = rate_breaks,
       # values = scales::rescale(rate_breaks),
@@ -142,25 +156,25 @@ ggplot2::labs(
       ylim = c(0, y_limit),
       clip = "on"
     ) +
-ggplot2::theme_minimal(base_size = base) +
+    ggplot2::theme_minimal(base_size = base) +
     ggplot2::theme(
       plot.margin = margin(5, 5, 5, 5),
-      
+
       # Aligns titles to the entire plot width rather than the inner panel grid
-      # plot.title.position = "plot", 
-      
+      # plot.title.position = "plot",
+
       # Style the multi-line subtitle block
       plot.subtitle = element_text(
-        color = "gray30", 
-        size = base * 0.85, 
+        color = "gray30",
+        size = base * 0.85,
         lineheight = 1.2 # Adds clean vertical breathing room between the lines
       ),
 
       axis.title.y = element_text(
-        vjust = 2.5,             # Pushes text outward away from the numbers
-        margin = margin(r = 10)  # Alternately guarantees a 10pt buffer on the right
+        vjust = 2.5, # Pushes text outward away from the numbers
+        margin = margin(r = 10) # Alternately guarantees a 10pt buffer on the right
       ),
-      
+
       legend.position = "bottom",
       legend.title = element_text(
         hjust = 0.5,
@@ -185,7 +199,15 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       across(c(excess_mort, tot_ae_adm), sum),
       .by = c(period, parent_org)
     ) %>%
-    mutate(rate = excess_mort / tot_ae_adm, .by = c(period, parent_org))
+    mutate(
+      rate = excess_mort / tot_ae_adm,
+      denom = sapply(rate, round_denom, round = 10),
+      rate_bin = str_c("1 in ", denom),
+      bin_numeric = 1 / as.numeric(str_extract(rate_bin, "\\d+")),
+      precise_denom = round(1 / rate),
+      .by = c(period, parent_org)
+    ) %>%
+    mutate(tooltip_text = paste0(parent_org, ", ", format(period, "%Y %B"), "\n", scales::comma(round(excess_mort)), " delay-related deaths", "\nRate: 1 in ", precise_denom, " admissions"))
 
   label_data <- plot_data %>% filter(period == max(period))
 
@@ -202,7 +224,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     geom_line(linewidth = 2.5, col = "white") +
     geom_line_interactive(linewidth = 1.2) +
     geom_point_interactive(
-      aes(tooltip = scales::comma(round(rate * 1000))),
+      aes(tooltip = tooltip_text),
       size = 2.5,
       hover_nearest = TRUE
     ) +
@@ -263,7 +285,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       rate_bin = str_c("1 in ", denom),
       bin_numeric = 1 / as.numeric(str_extract(rate_bin, "\\d+")),
       precise_denom = round(1 / rate),
-      tooltip_text = paste0(cluster, "\nRate: 1 in ", precise_denom)
+      tooltip_text = paste0(cluster, ", ", format(period, "%Y %B"), "\n", scales::comma(round(excess_mort)), " delay-related deaths", "\nRate: 1 in ", precise_denom, " admissions")
     )
 
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
@@ -274,7 +296,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   # pal <- pal_func(length(unique_bins))
 
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
-  rate_breaks <- c(1 / 400, 1 / 200, 1/150, 1 / 100, 1 / 75, 1 / 50)
+  rate_breaks <- c(1 / 400, 1 / 200, 1 / 150, 1 / 100, 1 / 75, 1 / 50)
 
   p <- ggplot(plot_data, aes(fill = 1 / denom)) +
     geom_sf_interactive(
@@ -283,6 +305,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       linewidth = 0.3
     ) +
     scale_fill_stepsn(
+      n.breaks = 5,
       colors = as.character(base_colors),
       # breaks = rate_breaks,
       # values = scales::rescale(rate_breaks),

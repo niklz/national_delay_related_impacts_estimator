@@ -19,7 +19,10 @@ source("utils.R")
 # Impacts
 ae_impacts <- readRDS("data/ae_impacts.RDS")
 # Shape files
-region_shp <- st_read("data/shapefiles/region/region.shp")
+region_plot <- readRDS("data/region_plot.RDS")
+cluster_shp <- readRDS("data/cluster_shp_simple.RDS")
+
+
 
 
 ui <- page_sidebar(
@@ -73,12 +76,24 @@ ui <- page_sidebar(
     padding = "20px"
   ),
 
-  fluidRow(
-    card(girafeOutput("funnel_plot", width = "33%", height = "70vh")),
-    card(girafeOutput("time_series_plot", width = "33%", height = "70vh")),
-    card(girafeOutput("choropleth", width = "33%", height = "70vh"))
+
+  layout_column_wrap(
+    width = 1/3,
+    card(
+      girafeOutput("time_series_plot", height = "400px")
+      # card_header(""),
+    ),
+    card(
+      # card_header(""),
+      girafeOutput("choropleth", height = "400px")
+    ),
+    card(
+      # card_header(""),
+      girafeOutput("funnel_plot", height = "400px")
+    )
   )
 )
+
 
 server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
@@ -93,7 +108,14 @@ server <- function(input, output, session) {
         opts_tooltip(
           css = "background-color:white;color:black;padding:5px;border-radius:5px;font-family:sans-serif;"
         ),
-        opts_toolbar(saveaspng = FALSE)
+        opts_toolbar(saveaspng = FALSE),
+        opts_selection(
+          css = NULL,
+          type = c("none"),
+          only_shiny = TRUE,
+          selected = character(0),
+          linked = FALSE
+        )
       ),
       width_svg = 9,
       height_svg = 7
@@ -101,7 +123,7 @@ server <- function(input, output, session) {
   })
 
   output$time_series_plot <- renderGirafe({
-    p <- time_series_plot(ae_impacts)
+    p <- time_series_plot(ae_impacts, region_plot)
     girafe(
       ggobj = p,
       inset_element(
@@ -122,13 +144,22 @@ server <- function(input, output, session) {
         ),
         # This dims everything else so the hovered region stands out
         opts_hover_inv(css = "opacity:0.05;"),
-        opts_toolbar(saveaspng = FALSE)
-      )
+        opts_toolbar(saveaspng = FALSE),
+        opts_selection(
+          css = NULL,
+          type = c("none"),
+          only_shiny = TRUE,
+          selected = character(0),
+          linked = FALSE
+        )
+      ),
+      width_svg = 9,
+      height_svg = 7
     )
   })
 
   output$choropleth <- renderGirafe({
-    p <- choropleth_plot(ae_impacts)
+    p <- choropleth_plot(ae_impacts, cluster_shp)
     girafe(
       ggobj = p,
       options = list(
@@ -139,7 +170,14 @@ server <- function(input, output, session) {
         opts_tooltip(
           css = "background-color:white;color:black;padding:5px;border-radius:5px;font-family:sans-serif;"
         ),
-        opts_toolbar(saveaspng = FALSE)
+        opts_toolbar(saveaspng = FALSE),
+        opts_selection(
+          css = NULL,
+          type = c("none"),
+          only_shiny = TRUE,
+          selected = character(0),
+          linked = FALSE
+        )
       ),
       width_svg = 9,
       height_svg = 7

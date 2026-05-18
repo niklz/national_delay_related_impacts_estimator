@@ -151,7 +151,7 @@ round_denom <- function(val, round = 25) {
   return(rounded_denom)
 }
 
-time_series_plot <- function(data) {
+time_series_plot <- function(data, plot_region) {
 
  region_shp <- st_read("data/shapefiles/region/region.shp")
 
@@ -169,14 +169,14 @@ label_data <- plot_data %>%
 
 
 # 1. Map: Extreme simplification + static lines
-region_plot <- region_shp %>%
-  ms_simplify(keep = 0.005, keep_shapes = TRUE) %>% 
-  ggplot(aes(fill = parent_org, data_id = parent_org)) +
-  geom_sf_interactive(colour = "white", size = 0.5, alpha = 0.15) + 
-  coord_sf(datum = NA) +
-  theme_void() +
-  paletteer::scale_fill_paletteer_d("MetBrewer::Hokusai1") +
-  theme(legend.position = "none")
+# region_plot <- region_shp %>%
+#   ms_simplify(keep = 0.005, keep_shapes = TRUE) %>% 
+#   ggplot(aes(fill = parent_org, data_id = parent_org)) +
+#   geom_sf_interactive(colour = "white", size = 0.5, alpha = 0.15) + 
+#   coord_sf(datum = NA) +
+#   theme_void() +
+#   paletteer::scale_fill_paletteer_d("MetBrewer::Hokusai1") +
+#   theme(legend.position = "none")
 
 # 2. Time Series: Mix static and interactive layers
 ts_plot <- ggplot(plot_data, aes(x = period, y = rate*1000, 
@@ -205,20 +205,19 @@ ts_plot <- ggplot(plot_data, aes(x = period, y = rate*1000,
     legend.position = "none",
     axis.title = element_text(angle = 0, vjust = 1, hjust = 0, face = "bold")
   );
-  ts_plot + inset_element(region_plot, on_top = FALSE, left = -0.15, bottom = 0, right = 0.9, top = 1)
+  ts_plot + inset_element(plot_region, on_top = FALSE, left = -0.15, bottom = 0, right = 0.9, top = 1)
 }
 
-choropleth_plot <- function(data) {
+choropleth_plot <- function(data, shp) {
 
-  cluster_shp <- sf::st_read("data/cluster/cluster.shp")
 
-  cluster_impacts <- ae_impacts %>%
+  cluster_impacts <- data %>%
   filter(period == max(period, na.rm = TRUE), org != "Total", icb_name != "") %>%
   summarise(across(c(excess_mort, tot_ae_adm), sum), .by = c(period, cluster))
 
 
 # Process the data
-plot_data <- cluster_shp %>%
+plot_data <- shp %>%
   left_join(cluster_impacts, by = join_by(cluster == cluster)) %>%
   mutate(
     rate = excess_mort/tot_ae_adm,
@@ -229,8 +228,7 @@ plot_data <- cluster_shp %>%
     precise_denom = round(1 / rate),
     # Tooltip string with the specific '1 in X' value
     tooltip_text = paste0(cluster, "\nRate: 1 in ", precise_denom)
-  ) %>%
-  ms_simplify(keep = 0.0005)
+  )
 
 # Create a color mapping for ONLY the bins present in the data
 unique_bins <- plot_data %>% 

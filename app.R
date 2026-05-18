@@ -23,6 +23,14 @@ source("utils.R")
 ae_impacts <- readRDS("data/ae_impacts.RDS")
 region_plot <- readRDS("data/region_plot.RDS")
 cluster_shp <- readRDS("data/cluster_shp_simple.RDS")
+
+ae_impacts$period <- as.Date(ae_impacts$period)
+available_dates <- sort(unique(ae_impacts$period))
+min_date <- min(available_dates, na.rm = TRUE)
+max_date <- max(available_dates, na.rm = TRUE)
+
+
+
 ui <- page_sidebar(
   title = "NHS National A&E Delay-Related Impacts Dashboard",
   
@@ -94,13 +102,35 @@ ui <- page_sidebar(
     heights_equal = "row",
     
     card(
-      girafeOutput("time_series_plot", height = "100%")
+      girafeOutput("time_series_plot", height = "100%"),
+          dateRangeInput(
+      inputId = "ts_date_range",
+      label = "Select Trend Window:",
+      start = max_date - months(6), # Default initialization window
+      end = max_date,
+      min = min_date,
+      max = max_date,
+      format = "yyyy-mm",
+      startview = "year"
+    ),
     ),
     card(
-      girafeOutput("choropleth", height = "100%")
+      girafeOutput("choropleth", height = "100%"),
+      selectInput(
+      inputId = "cluster_date",
+      label = "Select Target Month (Map & Funnel):",
+      choices = format(available_dates, "%B %Y"),
+      selected = format(max_date, "%B %Y")
+    )
     ),
     card(
-      girafeOutput("funnel_plot", height = "100%")
+      girafeOutput("funnel_plot", height = "100%"),
+      selectInput(
+      inputId = "trust_date",
+      label = "Select Target Month (Map & Funnel):",
+      choices = format(available_dates, "%B %Y"),
+      selected = format(max_date, "%B %Y")
+    )
     )
   )
 )
@@ -110,8 +140,25 @@ server <- function(input, output, session) {
   # Shared tooltip CSS styling
   tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
 
+  target_month_cluster <- reactive({
+    req(input$snapshot_date)
+    parsed_date <- as.Date(paste("01", input$cluster_date), format = "%d %B %Y")
+    return(parsed_date)
+  })
+
+  target_month_trust <- reactive({
+    req(input$snapshot_date)
+    parsed_date <- as.Date(paste("01", input$trust_date), format = "%d %B %Y")
+    return(parsed_date)
+  })
+
+
   output$funnel_plot <- renderGirafe({
-    p <- funnel_plot(ae_impacts, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
+
+    filtered_funnel_data <- ae_impacts %>%
+      filter(period == target_month_trust())
+
+    p <- funnel_plot(filtered_funnel_data, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
     girafe(
       ggobj = p,
       options = list(
@@ -146,7 +193,11 @@ server <- function(input, output, session) {
   })
   
   output$choropleth <- renderGirafe({
-    p <- choropleth_plot(ae_impacts, cluster_shp, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
+
+    filtered_map_data <- ae_impacts %>%
+      filter(period == target_month_cluster())
+
+    p <- choropleth_plot(filtered_map_data, cluster_shp, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
     girafe(
       ggobj = p,
       options = list(

@@ -114,9 +114,9 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       alpha = 0.6
     ) +
 ggplot2::labs(
-      title = str_wrap("Delay-related mortality per 1000 type-1 A&E admissions", wrap),
+      title = str_wrap("Delay-related deaths per trust", wrap),
       # Combine subtitle and caption text using a newline (\n)
-      subtitle = str_wrap("Each dot represents a major (type-1) A&E department. Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
+      subtitle = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
       x = "Total type-1 A&E Admissions",
       y = NULL, #"Expected delay-related deaths per 1000 admission",
       colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
@@ -129,7 +129,7 @@ ggplot2::labs(
       colors = as.character(base_colors),
       # breaks = rate_breaks,
       # values = scales::rescale(rate_breaks),
-      labels = rate_labeller,
+      labels = per_k_labeller,
       guide = guide_colorsteps(
         title.position = "top",
         even.steps = TRUE,
@@ -286,7 +286,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       colors = as.character(base_colors),
       # breaks = rate_breaks,
       # values = scales::rescale(rate_breaks),
-      labels = rate_labeller,
+      labels = per_k_labeller,
       # limits = range(rate_breaks),
       guide = guide_colorsteps(
         even.steps = FALSE,

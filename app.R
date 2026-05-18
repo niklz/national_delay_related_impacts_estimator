@@ -31,7 +31,21 @@ min_date <- min(available_dates, na.rm = TRUE)
 max_date <- max(available_dates, na.rm = TRUE)
 
 ui <- page_navbar(
-  title = "NHS National A&E Delay-Related Impacts Dashboard",
+  title = tags$p(style = "margin: 0; padding-top: 0.25rem; font-size: 24px; color: #000000; max-width: 900px; line-height: 1.4;",
+    "NHS National A&E Delay-Related Impacts Dashboard"
+),
+  
+  # Clean, integrated HTML header block 
+  header = tags$p(
+    style = "margin: 0; padding-top: 0.25rem; font-size: 18px; color: #555; max-width: 900px; line-height: 1.4;",
+    "This dashboard displays estimated excess deaths associated with prolonged waits for A&E admission, ",
+    "applying the risk associations established in ",
+    tags$a(href = "https://doi.org/10.1136/emermed-2025-214983", target = "_blank", "Howlett et al.", style = "color: #003087; text-decoration: underline;"),
+    ". Waiting times and admission volumes data are sourced directly from ",
+    tags$a(href = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/", target = "_blank", "NHS England Statistics", style = "color: #003087; text-decoration: underline;"),
+    ". All metrics are expressed as rates per 1,000 Type-1 A&E admissions."
+  ),
+  
   theme = bs_theme(version = 5, bg = "#ffffff", fg = "#333333", primary = "#003087"),
   
   tags$head(

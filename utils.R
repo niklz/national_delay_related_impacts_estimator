@@ -133,7 +133,8 @@ ggplot2::labs(
       guide = guide_colorsteps(
         title.position = "top",
         even.steps = TRUE,
-        barwidth = unit(0.8, 'npc'),
+        barheight = unit(0.04, 'npc'),
+        barwidth = unit(0.9, 'npc')
       )
     ) +
     ggplot2::coord_cartesian(
@@ -173,7 +174,7 @@ ggplot2::theme_minimal(base_size = base) +
 
 time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
   plot_data <- data %>%
-    filter(period > max(period) - dmonths(6), parent_org != "Total") %>%
+    filter(parent_org != "Total") %>%
     mutate(
       parent_org = str_wrap(
         str_to_title(str_trim(str_remove_all(parent_org, "NHS England"))),
@@ -215,12 +216,12 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       size = base * 0.85 / 2.83464,
       fontface = "bold"
     ) +
-    scale_x_date(expand = expansion(mult = c(0.02, 0.2))) +
-    scale_y_continuous(labels = scales::comma) +
+    scale_x_date(expand = expansion(mult = c(0.02, 0.25))) +
+    scale_y_continuous(labels = \(x) str_c(x, " ‰")) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
     labs(
       title = str_wrap(
-        "Estimated monthly excess deaths, per 1000 type-1 A&E admissions per region",
+        "Delay-related deaths per region",
         wrap
       ),
       x = NULL,

@@ -11,17 +11,17 @@ library(ggiraph)
 library(sf)
 require(rmapshaper)
 require(ggrepel)
-require(shinyWidgets) 
+require(shinyWidgets)
 
 # UI params
-PLOT_TITLE_WRAP <- 45
+PLOT_TITLE_WRAP <- 65
 BASE_FONT_SIZE <- 11
 
 # Utils
 source("utils.R")
 
 # Read data
-ae_impacts <- readRDS("data/ae_impacts.RDS")
+ae_impacts <- read_csv("https://raw.githubusercontent.com/niklz/excess_impacts_national/refs/heads/main/data/ae_impacts.csv")
 region_plot <- readRDS("data/region_plot.RDS")
 cluster_shp <- readRDS("data/cluster_shp_simple.RDS")
 
@@ -38,6 +38,9 @@ ui <- page_navbar(
     tags$style(HTML("
       .container-fluid { padding: 0.5rem 1rem !important; }
       .custom-plot-block { display: flex; flex-direction: column; padding: 0 !important; }
+      /* Constrain the actual width of the datepicker input fields */
+      #ts_date_range { max-width: 290px !important; }
+      #cluster_date, #trust_date { max-width: 180px !important; }
       .shiny-input-container { margin-bottom: 0.25rem !important; width: 100% !important; }
       .shiny-input-container label { font-weight: 600; margin-bottom: 0.2rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
       .girafe_container_std { width: 100% !important; margin: 0 !important; padding: 0 !important; }
@@ -48,38 +51,51 @@ ui <- page_navbar(
   div(class = "container-fluid",
     div(class = "row gx-4",
       
+      # Column 1: Time Series Trend Window
       div(class = "col-md-4 custom-plot-block",
-        # Custom Month-Only Range Picker
         airDatepickerInput(
           inputId = "ts_date_range",
           label = "Select Trend Window:",
           value = c(max_date - months(6), max_date),
           minDate = min_date,
           maxDate = max_date,
-          range = TRUE,          # Allows picking a start and end point
-          view = "months",       # Opens directly to month selection matrix
-          minView = "months",    # Disables drilling down to individual days
-          dateFormat = "yyyy-MM" # Formats display cleanly stringwise
+          range = TRUE,
+          view = "months",
+          minView = "months",
+          dateFormat = "yyyy MMMM", # Displays as '2026 April'
+          monthsField = "months" # Forces the full name of the month
         ),
         girafeOutput("time_series_plot", height = "auto")
       ),
       
+      # Column 2: Choropleth Map Snapshot Selector
       div(class = "col-md-4 custom-plot-block",
-        selectInput(
+        airDatepickerInput(
           inputId = "cluster_date",
           label = "Select Map Target Month:",
-          choices = format(available_dates, "%B %Y"),
-          selected = format(max_date, "%B %Y")
+          value = max_date,
+          minDate = min_date,
+          maxDate = max_date,
+          view = "months",
+          minView = "months",
+          dateFormat = "yyyy MMMM", # Displays as '2026 April'
+          monthsField = "months"
         ),
         girafeOutput("choropleth", height = "auto")
       ),
       
+      # Column 3: Funnel Plot Snapshot Selector
       div(class = "col-md-4 custom-plot-block",
-        selectInput(
+        airDatepickerInput(
           inputId = "trust_date",
           label = "Select Funnel Target Month:",
-          choices = format(available_dates, "%B %Y"),
-          selected = format(max_date, "%B %Y")
+          value = max_date,
+          minDate = min_date,
+          maxDate = max_date,
+          view = "months",
+          minView = "months",
+          dateFormat = "yyyy MMMM", # Displays as '2026 April'
+          monthsField = "months"
         ),
         girafeOutput("funnel_plot", height = "auto")
       )
@@ -90,23 +106,23 @@ ui <- page_navbar(
 server <- function(input, output, session) {
   tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
 
+  # airDatepicker outputs standard Date objects cleanly for singles
   target_month_cluster <- reactive({
     req(input$cluster_date) 
-    as.Date(paste("01", input$cluster_date), format = "%d %B %Y")
+    as.Date(input$cluster_date)
   })
 
   target_month_trust <- reactive({
     req(input$trust_date) 
-    as.Date(paste("01", input$trust_date), format = "%d %B %Y")
+    as.Date(input$trust_date)
   })
 
   # 1. Time Series
   output$time_series_plot <- renderGirafe({
     req(input$ts_date_range)
     
-    # airDatepicker outputs strings/dates natively, extract bounding items safely
     start_dt <- as.Date(input$ts_date_range[1])
-    end_dt <- if(length(input$ts_date_range) > 1) as.Date(input$ts_date_range[2]) else start_dt
+    end_dt   <- if(length(input$ts_date_range) > 1) as.Date(input$ts_date_range[2]) else start_dt
 
     filtered_ts_data <- ae_impacts %>%
       filter(period >= start_dt & period <= end_dt)

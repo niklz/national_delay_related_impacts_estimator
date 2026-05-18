@@ -13,7 +13,7 @@ require(rmapshaper)
 require(ggrepel)
 
 # UI params
-PLOT_TITLE_WRAP <- 50
+PLOT_TITLE_WRAP <- 60
 BASE_FONT_SIZE <- 14
 
 # Utils
@@ -129,8 +129,6 @@ server <- function(input, output, session) {
   })
   
   output$time_series_plot <- renderGirafe({
-    # Fixed: Removed the repetitive inset_element call here. 
-    # the function time_series_plot already includes this step natively.
     p <- time_series_plot(ae_impacts, region_plot, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
     girafe(
       ggobj = p,

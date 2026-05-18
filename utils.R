@@ -77,7 +77,7 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
   breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
 
-  base_colors <- paletteer::paletteer_d("beyonce::X41")
+  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
   rate_breaks <- c(1 / 400, 1 / 200, 1 / 100, 1 / 75, 1 / 50)
 
   y_limit <- max(max(current_rate) * 1.2, 0.02)
@@ -95,14 +95,15 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       linetype = "dashed",
       alpha = 0.4
     ) +
-    ggplot2::geom_hline(yintercept = mu, color = "black", alpha = 0.5) +
+    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
     ggplot2::annotate(
       "text",
       x = x_max,
       y = mu,
+      colour = "steelblue",
       label = paste0("National average\n(", rate_labeller(mu), ")"),
       hjust = 1.05, # Flipped to inside the plot canvas so it doesn't require clip expansion
-      vjust = -0.5,
+      vjust = 0.5,
       size = base * 0.8 / 2.83464, # Matches ggplot text sizing down to baseline scale
       fontface = "italic"
     ) +
@@ -111,12 +112,13 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       size = 2.5,
       alpha = 0.6
     ) +
-    ggplot2::labs(
-      title = str_wrap("Delay-related mortality funnel plot", wrap),
-      subtitle = "Each dot represents a major (type-1) A&E department",
-      caption = "Dashed lines represent control limits, which define the range of expected statistical variation based on hospital volume.",
+ggplot2::labs(
+      title = str_wrap("Delay-related mortality per 1000 type-1 A&E admissions", wrap),
+      # Combine subtitle and caption text using a newline (\n)
+      subtitle = str_wrap("Each dot represents a major (type-1) A&E department. Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
       x = "Total type-1 A&E Admissions",
-      y = "Risk rate of delay-related deaths per 1000 admission"
+      y = NULL, #"Expected delay-related deaths per 1000 admission",
+      colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     scale_y_continuous(limits = c(0, y_limit), labels = \(x) {
       str_c(1000 * x, " ‰")
@@ -124,13 +126,13 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
     scale_x_continuous(labels = scales::comma) +
     scale_colour_stepsn(
       colors = as.character(base_colors),
-      breaks = rate_breaks,
-      values = scales::rescale(rate_breaks),
+      # breaks = rate_breaks,
+      # values = scales::rescale(rate_breaks),
       labels = rate_labeller,
       guide = guide_colorsteps(
+        title.position = "top",
         even.steps = TRUE,
         barwidth = unit(0.8, 'npc'),
-        title = str_wrap("Mortality Risk (e.g., 1 in 100 admissions)", 35)
       )
     ) +
     ggplot2::coord_cartesian(
@@ -138,16 +140,31 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       ylim = c(0, y_limit),
       clip = "on"
     ) +
-    ggplot2::theme_minimal(base_size = base) +
+ggplot2::theme_minimal(base_size = base) +
     ggplot2::theme(
+      plot.margin = margin(5, 5, 5, 5),
+      
+      # Aligns titles to the entire plot width rather than the inner panel grid
+      # plot.title.position = "plot", 
+      
+      # Style the multi-line subtitle block
+      plot.subtitle = element_text(
+        color = "gray30", 
+        size = base * 0.85, 
+        lineheight = 1.2 # Adds clean vertical breathing room between the lines
+      ),
+
+      axis.title.y = element_text(
+        vjust = 2.5,             # Pushes text outward away from the numbers
+        margin = margin(r = 10)  # Alternately guarantees a 10pt buffer on the right
+      ),
+      
       legend.position = "bottom",
-      plot.margin = margin(5, 5, 5, 5), # Tightened right margin from 50 to 5
-      panel.grid.minor = element_blank(),
-      plot.caption = element_text(
-        hjust = 0,
-        color = "gray30",
-        size = base * 0.75
-      )
+      legend.title = element_text(
+        hjust = 0.5,
+        size = base * 0.9
+      ),
+      legend.text = element_text(size = base * 0.8)
     )
   p
 }
@@ -191,7 +208,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       data = label_data,
       aes(label = parent_org, data_id = parent_org),
       hjust = 0,
-      nudge_x = 2,
+      nudge_x = 7.5,
       direction = "y", # Reduced horizontal nudge
       segment.color = NA,
       size = base * 0.85 / 2.83464,
@@ -250,9 +267,12 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
   breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
 
-  base_colors <- paletteer::paletteer_d("beyonce::X41")
-  pal_func <- colorRampPalette(as.character(base_colors))
-  pal <- pal_func(length(unique_bins))
+  # base_colors <- paletteer::paletteer_d("beyonce::X41")
+  # pal_func <- colorRampPalette(as.character(base_colors))
+  # pal <- pal_func(length(unique_bins))
+
+  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+  rate_breaks <- c(1 / 400, 1 / 200, 1/150, 1 / 100, 1 / 75, 1 / 50)
 
   p <- ggplot(plot_data, aes(fill = 1 / denom)) +
     geom_sf_interactive(
@@ -261,11 +281,11 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       linewidth = 0.3
     ) +
     scale_fill_stepsn(
-      colors = as.character(pal),
-      breaks = 1 / breaks,
-      values = scales::rescale(1 / breaks),
+      colors = as.character(base_colors),
+      # breaks = rate_breaks,
+      # values = scales::rescale(rate_breaks),
       labels = rate_labeller,
-      limits = range(1 / breaks),
+      # limits = range(rate_breaks),
       guide = guide_colorsteps(
         even.steps = FALSE,
         show.limits = FALSE,
@@ -276,7 +296,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     ) +
     labs(
       title = str_wrap("Delay-related deaths, per ICB cluster", wrap),
-      fill = "Risk rate (excess expected deaths, per type-1 A&E admission)"
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +
     theme(
@@ -284,7 +304,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       legend.position = "bottom",
       legend.title = element_text(
         hjust = 0.5,
-        face = "bold",
+        # face = "bold",
         size = base * 0.9
       ),
       legend.text = element_text(size = base * 0.8)

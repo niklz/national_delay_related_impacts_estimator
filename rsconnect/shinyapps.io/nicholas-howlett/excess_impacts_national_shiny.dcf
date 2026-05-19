@@ -5,6 +5,6 @@ account: nicholas-howlett
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 17384691
-bundleId: 12012374
-url: https://nicholas-howlett.shinyapps.io/excess_impacts_national_shiny/
+bundleId: 12013111
+url: https://apps-bnssg.shinyapps.io/excess_impacts_national_shiny/
 version: 1

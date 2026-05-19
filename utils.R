@@ -350,6 +350,192 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
 }
 
 
+funnel_plot <- function(
+  data,
+  base = 11,
+  wrap = 40,
+  log_x = FALSE,
+  zebra = TRUE,
+  over_dispersion = 3,
+  sigmas = seq(0.5, 5.0, by = 0.5),
+  selected_trusts = NULL # <-- STEP 1: Add argument to receive active selection vector
+) {
+  # 1. High-speed Vectorized Data Preparation
+  plot_data <- data %>%
+    filter(ae_type == "Type 1 (Major)", org != "Total") %>%
+    dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+    dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
+
+  if (nrow(plot_data) == 0) {
+    return(ggplot() + theme_minimal())
+  }
+
+  sum_excess <- sum(plot_data$excess_mort)
+  sum_adm <- sum(plot_data$tot_ae_adm)
+  mu <- sum_excess / sum_adm
+
+  # STEP 2: Flag selected rows and map explicit aesthetic overrides
+  plot_data <- plot_data %>%
+    mutate(
+      rate = excess_mort / tot_ae_adm,
+      z_score = (rate - mu) / sqrt(mu * (1 - mu) / tot_ae_adm),
+      precise_denom = round(1 / rate),
+      is_highlighted = org %in% selected_trusts, # Logical flag
+      
+      # Visual logic configuration profiles
+      point_stroke = ifelse(is_highlighted, 1.8, 0.2),
+      point_size   = ifelse(is_highlighted, 3.5, 2.5),
+      point_alpha  = ifelse(is_highlighted, 1.0, 0.6),
+      
+      tooltip = paste0(
+        org,
+        ", ",
+        format(period, "%Y %B"),
+        "\n",
+        scales::comma(round(excess_mort)),
+        " delay-related deaths\n",
+        "Rate: 1 in ",
+        precise_denom,
+        " admissions"
+      )
+    )
+
+  # 2. Derive Coordinate Anchors
+  x_min <- min(plot_data$tot_ae_adm)
+  x_max <- max(plot_data$tot_ae_adm)
+  y_limit <- max(max(plot_data$rate) * 1.2, 0.02)
+  x_limit_extended <- x_max * 1.02
+
+  # 3. Vectorized Mathematical Grid Generation
+  x_seq <- seq(x_min * 0.4, x_max * 1.05, length.out = 250)
+  sorted_sigmas <- sort(unique(sigmas))
+  logit_mu <- log(mu / (1 - mu))
+
+  funnel_lines <- tidyr::crossing(
+    tot_ae_adm = x_seq,
+    z_val = sorted_sigmas
+  ) %>%
+    mutate(
+      logit_se = sqrt(over_dispersion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu))),
+      upper = 1 / (1 + exp(-(logit_mu + z_val * logit_se))),
+      sigma = factor(z_val)
+    ) %>%
+    arrange(sigma, tot_ae_adm)
+
+  funnel_ribbons <- tibble()
+  if (zebra && length(sorted_sigmas) >= 2) {
+    stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
+    logit_se_seq <- sqrt(over_dispersion) * sqrt(1 / (x_seq * mu * (1 - mu)))
+
+    funnel_ribbons <- lapply(stripe_indices, function(i) {
+      z_lower <- sorted_sigmas[i]
+      z_upper <- sorted_sigmas[i + 1]
+      tibble(
+        tot_ae_adm = x_seq,
+        ymin = pmin(1 / (1 + exp(-(logit_mu + z_lower * logit_se_seq))), y_limit),
+        ymax = pmin(1 / (1 + exp(-(logit_mu + z_upper * logit_se_seq))), y_limit),
+        group_id = factor(paste0(z_lower, "-", z_upper))
+      )
+    }) %>% dplyr::bind_rows()
+  }
+
+  # 4. Canvas Assembly Pipeline
+  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
+
+  if (zebra && nrow(funnel_ribbons) > 0) {
+    p <- p +
+      ggplot2::geom_ribbon(
+        data = funnel_ribbons,
+        ggplot2::aes(x = tot_ae_adm, ymin = ymin, ymax = ymax, group = group_id),
+        inherit.aes = FALSE, fill = "grey40", alpha = 0.05
+      )
+  }
+
+  p <- p +
+    ggplot2::geom_line(
+      data = funnel_lines,
+      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, alpha = z_val),
+      color = "grey50", linetype = "dashed", inherit.aes = FALSE
+    ) +
+    ggplot2::scale_alpha_continuous(range = c(0.6, 0.15), guide = "none") +
+    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
+
+    ggplot2::annotate(
+      "text", x = x_max, y = mu, colour = "steelblue",
+      label = paste0("National average\n(", rate_labeller(mu), ")"),
+      hjust = 1.05, vjust = 0.5, size = base * 0.8 / 2.83464, fontface = "italic"
+    ) +
+    ggplot2::annotate(
+      "text", x = Inf, y = Inf, colour = "grey60",
+      label = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.", wrap * 0.6),
+      hjust = 1.05, vjust = 1.5, size = base * 0.8 / 2.83464, fontface = "italic"
+    ) +
+    
+    # STEP 3: Rebuilt using interactive shape 21 for granular outline borders
+    ggiraph::geom_point_interactive(
+      aes(
+        tooltip = tooltip, 
+        fill = rate,                  # Internal coloring maps to original scale
+        colour = is_highlighted,      # Explicit highlighting border color group
+        size = point_size,            # Scales up selected points dynamically
+        stroke = point_stroke,        # Beefs up the border outline width
+        alpha = point_alpha
+      ),
+      shape = 21                      # Filled circle token supporting borders
+    ) +
+    
+    # STEP 4: Define highlight border color tokens (Dark Charcoal for highlights, Transparent for rest)
+    ggplot2::scale_colour_manual(
+      values = c("FALSE" = "transparent", "TRUE" = "#111111"),
+      guide = "none"
+    ) +
+    ggplot2::scale_size_identity(guide = "none") +
+    ggplot2::scale_alpha_identity(guide = "none") +
+    
+    ggplot2::labs(
+      title = str_wrap("Delay-related deaths per trust", wrap),
+      x = "Total type-1 A&E admissions",
+      y = NULL,
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) # Changed from colour -> fill
+    ) +
+    scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰")) +
+    
+    # Switch guide mapping definition to scale_fill_stepsn
+    scale_fill_stepsn(
+      n.breaks = 5,
+      colors = as.character(base_colors),
+      labels = per_k_labeller,
+      guide = guide_colorsteps(
+        title.position = "top",
+        even.steps = TRUE,
+        show.limits = FALSE,
+        barheight = unit(0.04, 'npc'),
+        barwidth = unit(0.9, 'npc')
+      )
+    ) +
+    ggplot2::theme_minimal(base_size = base) +
+    ggplot2::theme(
+      plot.title = element_text(hjust = 0.5),
+      plot.margin = margin(5, 5, 5, 5),
+      axis.title.y = element_text(vjust = 2.5, margin = margin(r = 10)),
+      legend.position = "bottom",
+      legend.title = element_text(hjust = 0.5, size = base * 0.9),
+      legend.text = element_text(size = base * 0.8)
+    )
+
+  if (log_x) {
+    p <- p + scale_x_log10(labels = scales::comma) +
+      ggplot2::coord_cartesian(xlim = c(max(10, x_min * 0.5), x_limit_extended), ylim = c(0, y_limit), clip = "on")
+  } else {
+    p <- p + scale_x_continuous(labels = scales::comma) +
+      ggplot2::coord_cartesian(xlim = c(x_min, x_limit_extended), ylim = c(0, y_limit), clip = "on")
+  }
+
+  return(p)
+}
+
 choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   cluster_impacts <- data %>%
     filter(
@@ -383,6 +569,10 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
   breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
 
+  # base_colors <- paletteer::paletteer_d("beyonce::X41")
+  # pal_func <- colorRampPalette(as.character(base_colors))
+  # pal <- pal_func(length(unique_bins))
+
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
   rate_breaks <- c(1 / 400, 1 / 200, 1 / 150, 1 / 100, 1 / 75, 1 / 50)
 
@@ -395,10 +585,13 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     scale_fill_stepsn(
       n.breaks = 5,
       colors = as.character(base_colors),
+      # breaks = rate_breaks,
+      # values = scales::rescale(rate_breaks),
       labels = per_k_labeller,
+      # limits = range(rate_breaks),
       guide = guide_colorsteps(
-        even.steps = TRUE,      # CHANGED TO TRUE TO MATCH FUNNEL
-        show.limits = FALSE,    # MATCHED WITH FUNNEL
+        even.steps = FALSE,
+        show.limits = FALSE,
         title.position = "top",
         barheight = unit(0.04, 'npc'),
         barwidth = unit(0.9, 'npc')
@@ -406,30 +599,18 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     ) +
     labs(
       title = str_wrap("Delay-related deaths, per ICB cluster", wrap),
-      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) # REDUCED WRAP TO MATCH FUNNEL
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
-
-    theme_minimal(base_size = base) + # Switch to minimal to inherit structural spacing
+    theme_void(base_size = base) +
     theme(
-      # Hide all panel grid lines and background features
-      panel.grid = element_blank(),
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      axis.title.y = element_blank(),
-      
-      # Match the funnel plot margin layout
-      plot.margin = margin(5, 5, 5, 5), 
+      plot.margin = margin(5, 5, 5, 5), # Removed unneeded padding bounding the maps
       plot.title = element_text(hjust = 0.5),
-      
-      # Force an empty x-axis title that matches the funnel plot's vertical height
-      axis.title.x = element_text(
-        color = "transparent", 
-        margin = margin(t = 10) # Matches default breathing room of funnel axis title
-      ),
-      
-      # Legend specs remain perfectly unified
       legend.position = "bottom",
-      legend.title = element_text(hjust = 0.5, size = base * 0.9),
+      legend.title = element_text(
+        hjust = 0.5,
+        # face = "bold",
+        size = base * 0.9
+      ),
       legend.text = element_text(size = base * 0.8)
     )
   p

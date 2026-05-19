@@ -245,7 +245,7 @@ ui <- page_navbar(
 
   div(
     class = "container-fluid",
-    
+
     # ROW 1: Controls Only
     div(
       class = "row gx-4 control-row",
@@ -301,6 +301,15 @@ ui <- page_navbar(
             addon = "none",
             width = "100%"
           ),
+          shinyWidgets::virtualSelectInput(
+            inputId = "highlighted_trusts",
+            label = "Highlight Trust(s):",
+            choices = NULL,
+            multiple = TRUE,
+            search = TRUE,
+            placeholder = "Type to search...",
+            width = "100%"
+          ),
           div(
             class = "funnel-switch-container",
             div(
@@ -320,8 +329,8 @@ ui <- page_navbar(
         )
       )
     ),
-    
-    # ROW 2: Charts Only (Guarantees unified horizontal top baseline)
+
+    # ROW 2: Charts Only
     div(
       class = "row gx-4 chart-row",
       div(
@@ -345,7 +354,7 @@ ui <- page_navbar(
       div(
         class = "col-md-4 custom-plot-container",
         withSpinner(
-          girafeOutput("funnel_plot", height = "auto"),
+          girafeOutput("funnel_plot", height = "auto"), # FIXED Layout allocation target
           type = SPINNER_TYPE,
           color = "#003087",
           size = 0.7
@@ -423,7 +432,30 @@ server <- function(input, output, session) {
     )
   })
 
-  # 3. Funnel Plot
+  # 3. Funnel Plot Dropdown Dynamic Syncing
+  observe({
+    req(target_month_trust())
+
+    available_trusts <- ae_impacts %>%
+      filter(
+        period == target_month_trust(),
+        ae_type == "Type 1 (Major)",
+        org != "Total"
+      ) %>%
+      dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+      dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
+      pull(org) %>%
+      unique() %>%
+      sort()
+
+    shinyWidgets::updateVirtualSelect(
+      "highlighted_trusts",
+      choices = available_trusts,
+      session = session
+    )
+  })
+
+  # Reactive calculation pipeline for both coordinate variations
   funnel_cache <- reactive({
     req(target_month_trust())
 
@@ -434,13 +466,15 @@ server <- function(input, output, session) {
       filtered_funnel_data,
       BASE_FONT_SIZE,
       PLOT_TITLE_WRAP,
-      log_x = FALSE
+      log_x = FALSE,
+      selected_trusts = input$highlighted_trusts
     )
     p_log <- funnel_plot(
       filtered_funnel_data,
       BASE_FONT_SIZE,
       PLOT_TITLE_WRAP,
-      log_x = TRUE
+      log_x = TRUE,
+      selected_trusts = input$highlighted_trusts
     )
 
     list(linear = p_linear, log = p_log)

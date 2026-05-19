@@ -89,7 +89,6 @@ funnel_plot <- function(
   logit_mu <- log(mu / (1 - mu))
 
   # FIX: Clean, foolproof combination matrix using tidyr::crossing.
-  # This tracks groups perfectly and eliminates ordering errors.
   funnel_lines <- tidyr::crossing(
     tot_ae_adm = x_seq,
     z_val = sorted_sigmas
@@ -149,7 +148,6 @@ funnel_plot <- function(
       )
   }
 
-  # Render lines with explicit group mappings
   p <- p +
     ggplot2::geom_line(
       data = funnel_lines,
@@ -195,7 +193,7 @@ funnel_plot <- function(
       title = str_wrap("Delay-related deaths per trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
-      colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
+      colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60)
     ) +
     scale_y_continuous(limits = c(0, y_limit), labels = \(x) {
       str_c(1000 * x, " ‰")
@@ -206,7 +204,8 @@ funnel_plot <- function(
       labels = per_k_labeller,
       guide = guide_colorsteps(
         title.position = "top",
-        even.steps = TRUE,
+        even.steps = TRUE,      # MATCHED WITH MAP
+        show.limits = FALSE,    # MATCHED WITH MAP
         barheight = unit(0.04, 'npc'),
         barwidth = unit(0.9, 'npc')
       )
@@ -301,17 +300,15 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       aes(label = parent_org, data_id = parent_org),
       hjust = 0,
       nudge_x = 7.5,
-      direction = "y", # Reduced horizontal nudge
+      direction = "y", 
       segment.color = NA,
       size = base * 0.85 / 2.83464,
       fontface = "bold"
     ) +
     scale_x_date(
-      # Dynamically places a break on the start of every month
       breaks = scales::breaks_pretty(n = 6),
       minor_breaks = "1 month",
       expand = expansion(mult = c(0.02, 0.25)),
-      # Custom rule engine: Show the year ONLY on January boundary shifts
       labels = function(x) {
         ifelse(
           lubridate::month(x) == 1,
@@ -334,7 +331,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     theme(
       legend.position = "none",
       plot.title = element_text(hjust = 0.5),
-      plot.margin = margin(5, 5, 5, 5), # Zeroed/minimized extra margins
+      plot.margin = margin(5, 5, 5, 5), 
       axis.title = element_text(angle = 0, vjust = 1, hjust = 0, face = "bold"),
       axis.text.x = element_text(size = base - 1, color = "#555555"),
       panel.grid.minor.x = element_line(color = "#e9ecef", linewidth = 0.5),
@@ -386,10 +383,6 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
   breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
 
-  # base_colors <- paletteer::paletteer_d("beyonce::X41")
-  # pal_func <- colorRampPalette(as.character(base_colors))
-  # pal <- pal_func(length(unique_bins))
-
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
   rate_breaks <- c(1 / 400, 1 / 200, 1 / 150, 1 / 100, 1 / 75, 1 / 50)
 
@@ -402,13 +395,10 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     scale_fill_stepsn(
       n.breaks = 5,
       colors = as.character(base_colors),
-      # breaks = rate_breaks,
-      # values = scales::rescale(rate_breaks),
       labels = per_k_labeller,
-      # limits = range(rate_breaks),
       guide = guide_colorsteps(
-        even.steps = FALSE,
-        show.limits = FALSE,
+        even.steps = TRUE,      # CHANGED TO TRUE TO MATCH FUNNEL
+        show.limits = FALSE,    # MATCHED WITH FUNNEL
         title.position = "top",
         barheight = unit(0.04, 'npc'),
         barwidth = unit(0.9, 'npc')
@@ -416,18 +406,30 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     ) +
     labs(
       title = str_wrap("Delay-related deaths, per ICB cluster", wrap),
-      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) # REDUCED WRAP TO MATCH FUNNEL
     ) +
-    theme_void(base_size = base) +
+
+    theme_minimal(base_size = base) + # Switch to minimal to inherit structural spacing
     theme(
-      plot.margin = margin(5, 5, 5, 5), # Removed unneeded padding bounding the maps
+      # Hide all panel grid lines and background features
+      panel.grid = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title.y = element_blank(),
+      
+      # Match the funnel plot margin layout
+      plot.margin = margin(5, 5, 5, 5), 
       plot.title = element_text(hjust = 0.5),
-      legend.position = "bottom",
-      legend.title = element_text(
-        hjust = 0.5,
-        # face = "bold",
-        size = base * 0.9
+      
+      # Force an empty x-axis title that matches the funnel plot's vertical height
+      axis.title.x = element_text(
+        color = "transparent", 
+        margin = margin(t = 10) # Matches default breathing room of funnel axis title
       ),
+      
+      # Legend specs remain perfectly unified
+      legend.position = "bottom",
+      legend.title = element_text(hjust = 0.5, size = base * 0.9),
       legend.text = element_text(size = base * 0.8)
     )
   p

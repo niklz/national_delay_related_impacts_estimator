@@ -71,8 +71,16 @@ if (length(sigmas_global) >= 2) {
     z_upper <- sigmas_global[i + 1]
     tibble(
       tot_ae_adm = funnel_base_grid$tot_ae_adm,
-      ymin = 1 / (1 + exp(-(funnel_base_grid$logit_mu + z_lower * funnel_base_grid$logit_se))),
-      ymax = 1 / (1 + exp(-(funnel_base_grid$logit_mu + z_upper * funnel_base_grid$logit_se))),
+      ymin = 1 /
+        (1 +
+          exp(
+            -(funnel_base_grid$logit_mu + z_lower * funnel_base_grid$logit_se)
+          )),
+      ymax = 1 /
+        (1 +
+          exp(
+            -(funnel_base_grid$logit_mu + z_upper * funnel_base_grid$logit_se)
+          )),
       group_id = paste0(z_lower, "-", z_upper)
     )
   })
@@ -210,21 +218,21 @@ ui <- page_navbar(
       # Column 1: Time Series Trend Window
       div(
         class = "col-md-4 custom-plot-block",
-        airDatepickerInput(
-          inputId = "ts_date_range",
+        sliderInput(
+          inputId = "ts_date_slider",
           label = "Select Trend Window:",
+          min = min_date,
+          max = max_date,
           value = c(max_date - months(6), max_date),
-          minDate = min_date,
-          maxDate = max_date,
-          range = TRUE,
-          view = "months",
-          minView = "months",
-          dateFormat = "yyyy MMMM",
-          monthsField = "months"
+          timeFormat = "%Y-%m",
+          step = 30.5, # Approximates a month step block natively
+          width = "100%"
         ),
         withSpinner(
           girafeOutput("time_series_plot", height = "auto"),
-          type = SPINNER_TYPE, color = "#003087", size = 0.7
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
         )
       ),
 
@@ -244,7 +252,9 @@ ui <- page_navbar(
         ),
         withSpinner(
           girafeOutput("choropleth", height = "auto"),
-          type = SPINNER_TYPE, color = "#003087", size = 0.7
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
         )
       ),
 
@@ -284,7 +294,9 @@ ui <- page_navbar(
         ),
         withSpinner(
           girafeOutput("funnel_plot", height = "auto"),
-          type = SPINNER_TYPE, color = "#003087", size = 0.7
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
         )
       )
     )
@@ -306,13 +318,11 @@ server <- function(input, output, session) {
 
   # 1. Time Series
   output$time_series_plot <- renderGirafe({
-    req(input$ts_date_range)
-    start_dt <- as.Date(input$ts_date_range[1])
-    end_dt <- if (length(input$ts_date_range) > 1) {
-      as.Date(input$ts_date_range[2])
-    } else {
-      start_dt
-    }
+    req(input$ts_date_slider)
+
+    # Floor dates to the start of the month to keep filtering consistent
+    start_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[1]), "month")
+    end_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[2]), "month")
 
     filtered_ts_data <- ae_impacts %>%
       filter(period >= start_dt & period <= end_dt)

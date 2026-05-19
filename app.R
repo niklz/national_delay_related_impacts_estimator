@@ -143,7 +143,6 @@ ui <- page_navbar(
         height: 100% !important;
         flex-grow: 1 !important;
       }
-      #ts_date_range { max-width: 290px !important; }
       #cluster_date, #trust_date { max-width: 180px !important; }
       
       /* Control Headers Layout Settings */
@@ -152,6 +151,23 @@ ui <- page_navbar(
       .girafe_container_std { width: 100% !important; margin: 0 !important; padding: 0 !important; }
       .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
       
+ /* Target isolated slider layout adjustments */
+      .slider-breathing-room {
+        padding-bottom: 15px !important;
+        width: 100%;
+        display: flex !important;
+        justify-content: center !important; /* Horizontally aligns child flex elements */
+      }
+      
+      /* Force Shiny's generated slider block to scale down and center */
+      .slider-breathing-room .shiny-input-container.form-group {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        min-width: 220px !important; /* Safety floor: prevents the slider from getting too squished */
+        max-width: 80% !important; /* 
+        --text-align: center; /* Centers the 'Select Trend Window:' label text above the track */
+      }
+
       .funnel-control-header {
         display: flex !important;
         align-items: flex-end !important;
@@ -218,15 +234,19 @@ ui <- page_navbar(
       # Column 1: Time Series Trend Window
       div(
         class = "col-md-4 custom-plot-block",
-        sliderInput(
-          inputId = "ts_date_slider",
-          label = "Select Trend Window:",
-          min = min_date,
-          max = max_date,
-          value = c(max_date - months(6), max_date),
-          timeFormat = "%Y-%m",
-          step = 30.5, # Approximates a month step block natively
-          width = "100%"
+        # Custom wrapper added here to add local breathing room padding
+        div(
+          class = "slider-breathing-room",
+          sliderInput(
+            inputId = "ts_date_slider",
+            label = "Select time-series window:",
+            min = min_date,
+            max = max_date,
+            value = c(max_date - months(6), max_date),
+            timeFormat = "%Y-%m",
+            step = 30.5,
+            width = "100%"
+          )
         ),
         withSpinner(
           girafeOutput("time_series_plot", height = "auto"),
@@ -241,7 +261,7 @@ ui <- page_navbar(
         class = "col-md-4 custom-plot-block",
         airDatepickerInput(
           inputId = "cluster_date",
-          label = "Select Map Target Month:",
+          label = "Select target month:",
           value = max_date,
           minDate = min_date,
           maxDate = max_date,
@@ -265,7 +285,7 @@ ui <- page_navbar(
           class = "funnel-control-header",
           airDatepickerInput(
             inputId = "trust_date",
-            label = "Select Funnel Target Month:",
+            label = "Select  target month:",
             value = max_date,
             minDate = min_date,
             maxDate = max_date,
@@ -274,7 +294,6 @@ ui <- page_navbar(
             dateFormat = "yyyy MMMM",
             monthsField = "months"
           ),
-          # Native Bootstrap 5 Reactivity Form Switch Wrapper Architecture
           div(
             class = "funnel-switch-container",
             div(
@@ -320,7 +339,6 @@ server <- function(input, output, session) {
   output$time_series_plot <- renderGirafe({
     req(input$ts_date_slider)
 
-    # Floor dates to the start of the month to keep filtering consistent
     start_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[1]), "month")
     end_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[2]), "month")
 
@@ -398,7 +416,6 @@ server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
     req(funnel_cache())
 
-    # Safely handle potential initialization NULL values from HTML components
     is_log <- !is.null(input$log_x) && isTRUE(input$log_x)
 
     selected_plot <- if (is_log) {

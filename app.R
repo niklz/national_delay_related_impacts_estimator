@@ -239,6 +239,33 @@ ui <- page_navbar(
         user-select: none !important;
         white-space: nowrap !important;
       }
+/* Force consistent border colors across different input libraries */
+      .air-datepicker-global-container, 
+      .vscomp-toggle-button, 
+      input.airDatepickerInput {
+        border: 1px solid #ced4da !important;
+        border-radius: 4px !important;
+        height: 38px !important; /* Forces uniform heights */
+      }
+
+      /* Highlight border color on active focus */
+      .vscomp-wrapper:focus .vscomp-toggle-button,
+      input.airDatepickerInput:focus {
+        border-color: #003087 !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 48, 135, 0.25) !important;
+      }
+
+      /* Fix for Option B: Truncate long trust tags with an ellipsis instead of expanding */
+      .vscomp-wrapper {
+        max-width: 100% !important;
+      }
+      .vscomp-value-tag {
+        max-width: 130px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+      }
+
       "
     ))
   ),
@@ -288,30 +315,41 @@ ui <- page_navbar(
         class = "col-md-4",
         div(
           class = "funnel-control-header",
-          airDatepickerInput(
-            inputId = "trust_date",
-            label = "Select target month:",
-            value = max_date,
-            minDate = min_date,
-            maxDate = max_date,
-            view = "months",
-            minView = "months",
-            dateFormat = "yyyy MMMM",
-            monthsField = "months",
-            addon = "none",
-            width = "100%"
+          style = "display: flex !important; align-items: flex-end !important; gap: 10px; width: 80% !important; min-width: 220px !important; margin-left: auto !important; margin-right: auto !important;",
+
+          div(
+            style = "flex: 1 1 30%; min-width: 0;", # Prevents squishing
+            airDatepickerInput(
+              inputId = "trust_date",
+              label = "Select target month:",
+              value = max_date,
+              minDate = min_date,
+              maxDate = max_date,
+              view = "months",
+              minView = "months",
+              dateFormat = "yyyy MMMM",
+              monthsField = "months",
+              addon = "none",
+              width = "100%"
+            )
           ),
-          shinyWidgets::virtualSelectInput(
-            inputId = "highlighted_trusts",
-            label = "Highlight Trust(s):",
-            choices = NULL,
-            multiple = TRUE,
-            search = TRUE,
-            placeholder = "Type to search...",
-            width = "100%"
+
+          div(
+            style = "flex: 1 1 50%; min-width: 0;", # Forces text truncation inside VirtualSelect
+            shinyWidgets::virtualSelectInput(
+              inputId = "highlighted_trusts",
+              label = "Highlight Trust(s):",
+              choices = NULL,
+              multiple = TRUE,
+              search = TRUE,
+              placeholder = "Type to search...",
+              width = "100%"
+            )
           ),
+
           div(
             class = "funnel-switch-container",
+            style = "flex: 0 0 auto;", # Toggle switch keeps its exact size
             div(
               class = "form-check form-switch",
               tags$input(
@@ -322,7 +360,7 @@ ui <- page_navbar(
               tags$label(
                 class = "form-check-label",
                 `for` = "log_x",
-                "Log X-Axis"
+                "Log X"
               )
             )
           )

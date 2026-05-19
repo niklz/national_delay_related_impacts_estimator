@@ -12,6 +12,7 @@ library(sf)
 require(rmapshaper)
 require(ggrepel)
 require(shinyWidgets)
+library(shinycssloaders)
 
 # UI params
 PLOT_TITLE_WRAP <- 65
@@ -153,7 +154,6 @@ ui <- page_navbar(
       .girafe_container_std { width: 100% !important; margin: 0 !important; padding: 0 !important; }
       .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
       
-      /* New layout alignment settings for the inline widget wrapper */
       .funnel-control-header {
         display: flex !important;
         align-items: flex-end !important;
@@ -162,6 +162,47 @@ ui <- page_navbar(
         width: 100%;
       }
       .funnel-control-header .shiny-input-container { margin-bottom: 0 !important; }
+
+      /* Fixes for prettySwitch visual alignment bugs */
+      .pretty input:checked~.state.p-primary label:after {
+        background-color: #003087 !important;
+      }
+      .pretty.p-switch .state label:before {
+        border-radius: 60px !important;
+        background-color: #e9ecef !important;
+        border-color: #ced4da !important;
+        top: 0px !important;
+        height: 22px !important;
+        width: 44px !important;
+      }
+      .pretty.p-switch .state label:after {
+        border-radius: 50% !important;
+        background-color: #fff !important;
+        top: 3px !important;
+        left: 3px !important;
+        height: 16px !important;
+        width: 16px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        transition: left 0.25s ease;
+      }
+      .pretty.p-switch input:checked~.state label:after {
+        left: 25px !important;
+      }
+      .pretty .state label {
+        text-indent: 52px !important;
+        font-weight: 600 !important;
+        font-size: 11px !important;
+        color: #666 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        line-height: 22px !important;
+      }
+      /* Soft loading wrapper overlay adjustment styles */
+      .shiny-spinner-output-container {
+        flex-grow: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
       "
     ))
   ),
@@ -186,7 +227,11 @@ ui <- page_navbar(
           dateFormat = "yyyy MMMM",
           monthsField = "months"
         ),
-        girafeOutput("time_series_plot", height = "auto")
+        # Wrapped with shinycssloaders
+        withSpinner(
+          girafeOutput("time_series_plot", height = "auto"),
+          type = 8, color = "#003087", size = 0.7
+        )
       ),
 
       # Column 2: Choropleth Map Snapshot Selector
@@ -203,14 +248,18 @@ ui <- page_navbar(
           dateFormat = "yyyy MMMM",
           monthsField = "months"
         ),
-        girafeOutput("choropleth", height = "auto")
+        # Wrapped with shinycssloaders
+        withSpinner(
+          girafeOutput("choropleth", height = "auto"),
+          type = 8, color = "#003087", size = 0.7
+        )
       ),
 
-      # Column 3: Funnel Plot (Fixed Layout & Grid Alignment)
-div(
+      # Column 3: Funnel Plot
+      div(
         class = "col-md-4 custom-plot-block",
         div(
-          class = "funnel-control-header d-flex align-items-center justify-content-between",
+          class = "funnel-control-header d-flex align-items-end justify-content-between",
           airDatepickerInput(
             inputId = "trust_date",
             label = "Select Funnel Target Month:",
@@ -222,9 +271,8 @@ div(
             dateFormat = "yyyy MMMM",
             monthsField = "months"
           ),
-          # Custom wrapper div offsets the label height to keep things perfectly centered
           div(
-            style = "margin-top: 18px; padding-right: 5px;", 
+            style = "margin-bottom: 6px; padding-right: 5px; height: 22px;", 
             prettySwitch(
               inputId = "log_x",
               label = "Log X-Axis",
@@ -235,11 +283,16 @@ div(
             )
           )
         ),
-        girafeOutput("funnel_plot", height = "auto")
+        # Wrapped with shinycssloaders
+        withSpinner(
+          girafeOutput("funnel_plot", height = "auto"),
+          type = 8, color = "#003087", size = 0.7
+        )
       )
     )
   )
 )
+
 
 server <- function(input, output, session) {
   tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
@@ -319,7 +372,6 @@ server <- function(input, output, session) {
     filtered_funnel_data <- ae_impacts %>%
       filter(period == target_month_trust())
 
-    # Build BOTH plots simultaneously in memory
     p_linear <- funnel_plot(
       filtered_funnel_data,
       BASE_FONT_SIZE,
@@ -339,7 +391,6 @@ server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
     req(funnel_cache())
 
-    # Select the pre-built plot based on the toggle switch
     selected_plot <- if (input$log_x) {
       funnel_cache()$log
     } else {

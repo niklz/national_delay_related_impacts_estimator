@@ -122,60 +122,74 @@ ui <- page_navbar(
 
   tags$head(
     tags$style(HTML(
-      "
+      r"(
+      /* Layout & Structural Spacing */
       .container-fluid { padding: 0.5rem 1rem !important; }
+      .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
+      
       .custom-plot-block {
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
         height: 100% !important;
       }
-      .custom-plot-block .shiny-html-output {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        flex-grow: 1 !important;
-      }
+      .custom-plot-block .shiny-html-output,
       .girafe_container_std {
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
         height: 100% !important;
         flex-grow: 1 !important;
+        width: 100% !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
       }
-      #cluster_date, #trust_date { max-width: 180px !important; }
-      
-      /* Control Headers Layout Settings */
+
+      /* Global Input Form Defaults */
       .shiny-input-container { margin-bottom: 0.25rem !important; width: 100% !important; }
       .shiny-input-container label { font-weight: 600; margin-bottom: 0.2rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-      .girafe_container_std { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-      .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
+      .shiny-spinner-output-container { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; }
+
+      /* ==============================================================================
+         UNIFIED HEADER CONTROL SECTIONS (80% Relative Sizing / 220px Safeguard Floor)
+         ============================================================================== */
       
- /* Target isolated slider layout adjustments */
+      /* Column 1: Time Series Slider Breathing Room Row */
       .slider-breathing-room {
         padding-bottom: 15px !important;
         width: 100%;
         display: flex !important;
-        justify-content: center !important; /* Horizontally aligns child flex elements */
+        justify-content: center !important;
       }
       
-      /* Force Shiny's generated slider block to scale down and center */
-      .slider-breathing-room .shiny-input-container.form-group {
+      /* Target Selectors: Apply matching widths and center align them horizontally */
+      .slider-breathing-room .shiny-input-container.form-group,
+      #cluster_date,
+      .funnel-control-header {
         margin-left: auto !important;
         margin-right: auto !important;
-        min-width: 220px !important; /* Safety floor: prevents the slider from getting too squished */
-        max-width: 80% !important; /* 
-        --text-align: center; /* Centers the 'Select Trend Window:' label text above the track */
+        width: 100% !important;
+        min-width: 220px !important;
+        max-width: 80% !important;
       }
 
+      /* Center align the text specifically for the timeline slider label 
+      .slider-breathing-room .shiny-input-container.form-group {
+        text-align: left;
+      } 
+
+      /* Column 3 Components: Funnel Settings Header Alignment */
       .funnel-control-header {
         display: flex !important;
         align-items: flex-end !important;
         justify-content: space-between !important;
         gap: 15px;
-        width: 100%;
       }
-      .funnel-control-header .shiny-input-container { margin-bottom: 0 !important; }
+      .funnel-control-header .shiny-input-container { 
+        margin-bottom: 0 !important; 
+        width: auto !important;
+        flex-grow: 1;
+      }
 
       /* Custom Bootstrap Form Switch Overrides for clean iOS theme match */
       .funnel-switch-container {
@@ -198,13 +212,13 @@ ui <- page_navbar(
         cursor: pointer !important;
         background-color: #e9ecef;
         border-color: #ced4da;
-        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e\") !important;
+        background-image: url(r"(data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e") !important;
         transition: background-position .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out !important;
       }
       .funnel-switch-container .form-check-input:checked {
         background-color: #003087 !important;
         border-color: #003087 !important;
-        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e\") !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
       }
       .funnel-switch-container .form-check-label {
         font-weight: 600 !important;
@@ -216,13 +230,7 @@ ui <- page_navbar(
         cursor: pointer !important;
         user-select: none !important;
       }
-
-      .shiny-spinner-output-container {
-        flex-grow: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      "
+    )"
     ))
   ),
 

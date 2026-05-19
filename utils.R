@@ -213,6 +213,7 @@ funnel_plot <- function(
     ) +
     ggplot2::theme_minimal(base_size = base) +
     ggplot2::theme(
+      plot.title = element_text(hjust = 0.5),
       plot.margin = margin(5, 5, 5, 5),
       axis.title.y = element_text(vjust = 2.5, margin = margin(r = 10)),
       legend.position = "bottom",
@@ -332,6 +333,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
+      plot.title = element_text(hjust = 0.5),
       plot.margin = margin(5, 5, 5, 5), # Zeroed/minimized extra margins
       axis.title = element_text(angle = 0, vjust = 1, hjust = 0, face = "bold"),
       axis.text.x = element_text(size = base - 1, color = "#555555"),
@@ -419,6 +421,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     theme_void(base_size = base) +
     theme(
       plot.margin = margin(5, 5, 5, 5), # Removed unneeded padding bounding the maps
+      plot.title = element_text(hjust = 0.5),
       legend.position = "bottom",
       legend.title = element_text(
         hjust = 0.5,

@@ -122,24 +122,24 @@ ui <- page_navbar(
 
   tags$head(
     tags$style(HTML(
-      r"(
+      "
       /* Layout & Structural Spacing */
       .container-fluid { padding: 0.5rem 1rem !important; }
       .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
       
-      .custom-plot-block {
+      /* Chart Row Constraints */
+      .chart-row {
+        margin-top: 15px !important;
+      }
+      
+      .custom-plot-container {
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
         height: 100% !important;
       }
-      .custom-plot-block .shiny-html-output,
+      
+      .custom-plot-container .shiny-html-output,
       .girafe_container_std {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        height: 100% !important;
-        flex-grow: 1 !important;
         width: 100% !important; 
         margin: 0 !important; 
         padding: 0 !important;
@@ -154,41 +154,48 @@ ui <- page_navbar(
          UNIFIED HEADER CONTROL SECTIONS (80% Relative Sizing / 220px Safeguard Floor)
          ============================================================================== */
       
-      /* Column 1: Time Series Slider Breathing Room Row */
-      .slider-breathing-room {
-        padding-bottom: 15px !important;
-        width: 100%;
-        display: flex !important;
-        justify-content: center !important;
-      }
-      
-      /* Target Selectors: Apply matching widths and center align them horizontally */
-      .slider-breathing-room .shiny-input-container.form-group,
-      #cluster_date,
+      .slider-breathing-room,
+      .choropleth-control-header,
       .funnel-control-header {
         margin-left: auto !important;
         margin-right: auto !important;
-        width: 100% !important;
+        width: 80% !important;
         min-width: 220px !important;
-        max-width: 80% !important;
+        max-width: 100% !important;
+        display: flex !important;
       }
 
-      /* Center align the text specifically for the timeline slider label 
+      /* Column 1: Align from top so text line matches neighboring text labels precisely */
+      .slider-breathing-room {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        padding-top: 5px !important;
+      }
+      
       .slider-breathing-room .shiny-input-container.form-group {
-        text-align: left;
-      } 
+        margin: 0 !important;
+        width: 100% !important;
+        text-align: left !important;
+      }
 
-      /* Column 3 Components: Funnel Settings Header Alignment */
+      /* Columns 2 & 3: Align to bottom baseline so input blocks line up perfectly */
+      .choropleth-control-header,
       .funnel-control-header {
-        display: flex !important;
         align-items: flex-end !important;
         justify-content: space-between !important;
         gap: 15px;
       }
+
+      .choropleth-control-header .shiny-input-container,
       .funnel-control-header .shiny-input-container { 
         margin-bottom: 0 !important; 
         width: auto !important;
         flex-grow: 1;
+      }
+
+      /* Hide the non-functional/misleading airDatepicker icon addon block */
+      .datepicker--addon {
+        display: none !important;
       }
 
       /* Custom Bootstrap Form Switch Overrides for clean iOS theme match */
@@ -198,6 +205,7 @@ ui <- page_navbar(
         height: 38px;
         margin-bottom: 0px;
         padding-left: 0px !important;
+        flex-shrink: 0;
       }
       .funnel-switch-container .form-check {
         padding-left: 2.5em !important;
@@ -212,13 +220,13 @@ ui <- page_navbar(
         cursor: pointer !important;
         background-color: #e9ecef;
         border-color: #ced4da;
-        background-image: url(r"(data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e") !important;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e\") !important;
         transition: background-position .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out !important;
       }
       .funnel-switch-container .form-check-input:checked {
         background-color: #003087 !important;
         border-color: #003087 !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e\") !important;
       }
       .funnel-switch-container .form-check-label {
         font-weight: 600 !important;
@@ -229,20 +237,20 @@ ui <- page_navbar(
         margin-left: 8px !important;
         cursor: pointer !important;
         user-select: none !important;
+        white-space: nowrap !important;
       }
-    )"
+      "
     ))
   ),
 
   div(
     class = "container-fluid",
+    
+    # ROW 1: Controls Only
     div(
-      class = "row gx-4",
-
-      # Column 1: Time Series Trend Window
+      class = "row gx-4 control-row",
       div(
-        class = "col-md-4 custom-plot-block",
-        # Custom wrapper added here to add local breathing room padding
+        class = "col-md-4",
         div(
           class = "slider-breathing-room",
           sliderInput(
@@ -255,52 +263,43 @@ ui <- page_navbar(
             step = 30.5,
             width = "100%"
           )
-        ),
-        withSpinner(
-          girafeOutput("time_series_plot", height = "auto"),
-          type = SPINNER_TYPE,
-          color = "#003087",
-          size = 0.7
         )
       ),
-
-      # Column 2: Choropleth Map Snapshot Selector
       div(
-        class = "col-md-4 custom-plot-block",
-        airDatepickerInput(
-          inputId = "cluster_date",
-          label = "Select target month:",
-          value = max_date,
-          minDate = min_date,
-          maxDate = max_date,
-          view = "months",
-          minView = "months",
-          dateFormat = "yyyy MMMM",
-          monthsField = "months"
-        ),
-        withSpinner(
-          girafeOutput("choropleth", height = "auto"),
-          type = SPINNER_TYPE,
-          color = "#003087",
-          size = 0.7
-        )
-      ),
-
-      # Column 3: Funnel Plot
-      div(
-        class = "col-md-4 custom-plot-block",
+        class = "col-md-4",
         div(
-          class = "funnel-control-header",
+          class = "choropleth-control-header",
           airDatepickerInput(
-            inputId = "trust_date",
-            label = "Select  target month:",
+            inputId = "cluster_date",
+            label = "Select target month:",
             value = max_date,
             minDate = min_date,
             maxDate = max_date,
             view = "months",
             minView = "months",
             dateFormat = "yyyy MMMM",
-            monthsField = "months"
+            monthsField = "months",
+            addon = "none",
+            width = "100%"
+          )
+        )
+      ),
+      div(
+        class = "col-md-4",
+        div(
+          class = "funnel-control-header",
+          airDatepickerInput(
+            inputId = "trust_date",
+            label = "Select target month:",
+            value = max_date,
+            minDate = min_date,
+            maxDate = max_date,
+            view = "months",
+            minView = "months",
+            dateFormat = "yyyy MMMM",
+            monthsField = "months",
+            addon = "none",
+            width = "100%"
           ),
           div(
             class = "funnel-switch-container",
@@ -318,7 +317,33 @@ ui <- page_navbar(
               )
             )
           )
-        ),
+        )
+      )
+    ),
+    
+    # ROW 2: Charts Only (Guarantees unified horizontal top baseline)
+    div(
+      class = "row gx-4 chart-row",
+      div(
+        class = "col-md-4 custom-plot-container",
+        withSpinner(
+          girafeOutput("time_series_plot", height = "auto"),
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
+        )
+      ),
+      div(
+        class = "col-md-4 custom-plot-container",
+        withSpinner(
+          girafeOutput("choropleth", height = "auto"),
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
+        )
+      ),
+      div(
+        class = "col-md-4 custom-plot-container",
         withSpinner(
           girafeOutput("funnel_plot", height = "auto"),
           type = SPINNER_TYPE,

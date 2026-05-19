@@ -64,6 +64,8 @@ global_funnel_lines <- purrr::map_df(sigmas_global, function(z) {
   )
 })
 
+
+
 global_funnel_ribbons <- tibble()
 if (length(sigmas_global) >= 2) {
   stripe_indices <- seq(1, length(sigmas_global) - 1, by = 2)
@@ -205,10 +207,10 @@ ui <- page_navbar(
       ),
 
       # Column 3: Funnel Plot (Fixed Layout & Grid Alignment)
-      div(
+div(
         class = "col-md-4 custom-plot-block",
         div(
-          class = "funnel-control-header",
+          class = "funnel-control-header d-flex align-items-center justify-content-between",
           airDatepickerInput(
             inputId = "trust_date",
             label = "Select Funnel Target Month:",
@@ -220,14 +222,17 @@ ui <- page_navbar(
             dateFormat = "yyyy MMMM",
             monthsField = "months"
           ),
-          # Shifted inside the row flex-box wrapper for flush alignment
-          prettySwitch(
-            inputId = "log_x",
-            label = "Log X-Axis",
-            value = FALSE,
-            fill = TRUE,
-            inline = TRUE,
-            status = "primary"
+          # Custom wrapper div offsets the label height to keep things perfectly centered
+          div(
+            style = "margin-top: 18px; padding-right: 5px;", 
+            prettySwitch(
+              inputId = "log_x",
+              label = "Log X-Axis",
+              value = FALSE,
+              fill = TRUE,
+              inline = TRUE,
+              status = "primary"
+            )
           )
         ),
         girafeOutput("funnel_plot", height = "auto")

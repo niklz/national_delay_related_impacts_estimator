@@ -213,6 +213,101 @@ funnel_plot <- function(data, base = 11, wrap = 40, log_x = FALSE, zebra = TRUE,
   return(p)
 }
 
+funnel_plot_optimized <- function(data, base = 11, wrap = 40, log_x = FALSE, zebra = TRUE, lines_df, ribbons_df, mu_val) {
+  
+  plot_data <- data %>%
+    filter(org != "Total") %>%
+    dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+    dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
+    mutate(
+      rate = excess_mort / tot_ae_adm,
+      precise_denom = round(1 / rate),
+      tooltip = paste0(org, ", ", format(period, "%Y %B"), "\n", scales::comma(round(excess_mort)), " delay-related deaths", "\nRate: 1 in ", precise_denom, " admissions")
+    )
+
+  current_rate <- plot_data$excess_mort / plot_data$tot_ae_adm
+  x_min <- min(plot_data$tot_ae_adm)
+  x_max <- max(plot_data$tot_ae_adm)
+  y_limit <- max(max(current_rate) * 1.2, 0.02)
+  x_limit_extended <- x_max * 1.05
+
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
+
+  # Render Zebra Ribbons cleanly with support for log scales
+  if (zebra && nrow(ribbons_df) > 0) {
+    # If using a log scale, clip values below 10 to keep the geometry clean
+    display_ribbons <- if(log_x) filter(ribbons_df, tot_ae_adm >= 10) else ribbons_df
+    
+    p <- p + ggplot2::geom_ribbon(
+      data = display_ribbons,
+      ggplot2::aes(x = tot_ae_adm, ymin = pmin(ymin, y_limit), ymax = pmin(ymax, y_limit), group = group_id),
+      inherit.aes = FALSE, fill = "grey40", alpha = 0.05
+    )
+  }
+
+  # Render Control Lines
+  display_lines <- if(log_x) filter(lines_df, tot_ae_adm >= 10) else lines_df
+  p <- p + 
+    ggplot2::geom_line(
+      data = display_lines,
+      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, alpha = z_val),
+      color = "grey50", linetype = "dashed"
+    ) +
+    ggplot2::scale_alpha_continuous(range = c(0.5, 0.15), guide = "none") +
+    ggplot2::geom_hline(yintercept = mu_val, color = "steelblue", alpha = 0.5) +
+    
+    # Original Annotations
+    ggplot2::annotate(
+      "text", x = x_max, y = mu_val, colour = "steelblue",
+      label = paste0("National average\n(", rate_labeller(mu_val), ")"),
+      hjust = 1.05, vjust = -0.5, size = base * 0.8 / 2.83464, fontface = "italic"
+    ) +
+    ggplot2::annotate(
+      "text", x = Inf, y = Inf, colour = "grey60",
+      label = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.", wrap * 0.6),
+      hjust = 1.05, vjust = 1.5, size = base * 0.8 / 2.83464, fontface = "italic"
+    ) +
+    ggiraph::geom_point_interactive(
+      aes(tooltip = tooltip, col = rate), size = 2.5, alpha = 0.6
+    ) +
+    ggplot2::labs(
+      title = str_wrap("Delay-related deaths per trust", wrap),
+      x = "Total type-1 A&E admissions", y = NULL,
+      colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
+    ) +
+    scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰"))
+
+  # DYNAMIC AXIS HANDLER: Toggle between linear and log scales
+  if (log_x) {
+    p <- p + scale_x_log10(labels = scales::comma, limits = c(max(10, x_min * 0.5), x_limit_extended))
+  } else {
+    p <- p + scale_x_continuous(labels = scales::comma) +
+      ggplot2::coord_cartesian(xlim = c(x_min, x_limit_extended), ylim = c(0, y_limit), clip = "on")
+  }
+
+  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+
+  p <- p + 
+    scale_colour_stepsn(
+      n.breaks = 5, colors = as.character(base_colors), labels = per_k_labeller,
+      guide = guide_colorsteps(
+        title.position = "top", even.steps = TRUE,
+        barheight = unit(0.04, 'npc'), barwidth = unit(0.9, 'npc')
+      )
+    ) +
+    ggplot2::theme_minimal(base_size = base) +
+    ggplot2::theme(
+      plot.margin = margin(5, 5, 5, 5),
+      axis.title.y = element_text(vjust = 2.5, margin = margin(r = 10)),
+      legend.position = "bottom",
+      legend.title = element_text(hjust = 0.5, size = base * 0.9),
+      legend.text = element_text(size = base * 0.8)
+    )
+  
+  return(p)
+}
+
+
 time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
   plot_data <- data %>%
     filter(parent_org != "Total") %>%

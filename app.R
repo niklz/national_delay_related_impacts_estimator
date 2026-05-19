@@ -9,14 +9,15 @@ library(stringr)
 library(lubridate)
 library(ggiraph)
 library(sf)
+library(shinycssloaders)
+library(shinyWidgets)
 require(rmapshaper)
 require(ggrepel)
-require(shinyWidgets)
-library(shinycssloaders)
 
 # UI params
 PLOT_TITLE_WRAP <- 65
 BASE_FONT_SIZE <- 11
+SPINNER_TYPE <- 8
 
 # Utils
 source("utils.R")
@@ -36,12 +37,10 @@ max_date <- max(available_dates, na.rm = TRUE)
 # ==============================================================================
 # PERF FIX: PRE-COMPUTE MATHEMATICAL GRID MATRIX ONCE
 # ==============================================================================
-# Generate a definitive lookup framework covering every conceivable hospital size
 over_dispersion <- 3
 sigmas_global <- seq(0.5, 3.0, by = 0.5)
 x_grid_max <- max(ae_impacts$tot_ae_adm, na.rm = TRUE) * 1.5
 
-# Calculate an overarching global national average baseline
 mu_global <- sum(ae_impacts$excess_mort, na.rm = TRUE) /
   sum(ae_impacts$tot_ae_adm, na.rm = TRUE)
 
@@ -54,7 +53,6 @@ funnel_base_grid <- tibble(
       sqrt(1 / (tot_ae_adm * mu_global * (1 - mu_global)))
   )
 
-# Reshape into ready-to-layer lines and ribbons frames
 global_funnel_lines <- purrr::map_df(sigmas_global, function(z) {
   tibble(
     tot_ae_adm = funnel_base_grid$tot_ae_adm,
@@ -65,8 +63,6 @@ global_funnel_lines <- purrr::map_df(sigmas_global, function(z) {
   )
 })
 
-
-
 global_funnel_ribbons <- tibble()
 if (length(sigmas_global) >= 2) {
   stripe_indices <- seq(1, length(sigmas_global) - 1, by = 2)
@@ -75,16 +71,8 @@ if (length(sigmas_global) >= 2) {
     z_upper <- sigmas_global[i + 1]
     tibble(
       tot_ae_adm = funnel_base_grid$tot_ae_adm,
-      ymin = 1 /
-        (1 +
-          exp(
-            -(funnel_base_grid$logit_mu + z_lower * funnel_base_grid$logit_se)
-          )),
-      ymax = 1 /
-        (1 +
-          exp(
-            -(funnel_base_grid$logit_mu + z_upper * funnel_base_grid$logit_se)
-          )),
+      ymin = 1 / (1 + exp(-(funnel_base_grid$logit_mu + z_lower * funnel_base_grid$logit_se))),
+      ymax = 1 / (1 + exp(-(funnel_base_grid$logit_mu + z_upper * funnel_base_grid$logit_se))),
       group_id = paste0(z_lower, "-", z_upper)
     )
   })
@@ -149,6 +137,8 @@ ui <- page_navbar(
       }
       #ts_date_range { max-width: 290px !important; }
       #cluster_date, #trust_date { max-width: 180px !important; }
+      
+      /* Control Headers Layout Settings */
       .shiny-input-container { margin-bottom: 0.25rem !important; width: 100% !important; }
       .shiny-input-container label { font-weight: 600; margin-bottom: 0.2rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
       .girafe_container_std { width: 100% !important; margin: 0 !important; padding: 0 !important; }
@@ -163,41 +153,46 @@ ui <- page_navbar(
       }
       .funnel-control-header .shiny-input-container { margin-bottom: 0 !important; }
 
-      /* Fixes for prettySwitch visual alignment bugs */
-      .pretty input:checked~.state.p-primary label:after {
+      /* Custom Bootstrap Form Switch Overrides for clean iOS theme match */
+      .funnel-switch-container {
+        display: flex !important;
+        align-items: center !important;
+        height: 38px;
+        margin-bottom: 0px;
+        padding-left: 0px !important;
+      }
+      .funnel-switch-container .form-check {
+        padding-left: 2.5em !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      .funnel-switch-container .form-check-input {
+        height: 1.35em !important;
+        width: 2.4em !important;
+        margin-left: -2.5em !important;
+        cursor: pointer !important;
+        background-color: #e9ecef;
+        border-color: #ced4da;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e\") !important;
+        transition: background-position .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out !important;
+      }
+      .funnel-switch-container .form-check-input:checked {
         background-color: #003087 !important;
+        border-color: #003087 !important;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e\") !important;
       }
-      .pretty.p-switch .state label:before {
-        border-radius: 60px !important;
-        background-color: #e9ecef !important;
-        border-color: #ced4da !important;
-        top: 0px !important;
-        height: 22px !important;
-        width: 44px !important;
-      }
-      .pretty.p-switch .state label:after {
-        border-radius: 50% !important;
-        background-color: #fff !important;
-        top: 3px !important;
-        left: 3px !important;
-        height: 16px !important;
-        width: 16px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        transition: left 0.25s ease;
-      }
-      .pretty.p-switch input:checked~.state label:after {
-        left: 25px !important;
-      }
-      .pretty .state label {
-        text-indent: 52px !important;
+      .funnel-switch-container .form-check-label {
         font-weight: 600 !important;
         font-size: 11px !important;
         color: #666 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.5px !important;
-        line-height: 22px !important;
+        margin-left: 8px !important;
+        cursor: pointer !important;
+        user-select: none !important;
       }
-      /* Soft loading wrapper overlay adjustment styles */
+
       .shiny-spinner-output-container {
         flex-grow: 1 !important;
         display: flex !important;
@@ -227,10 +222,9 @@ ui <- page_navbar(
           dateFormat = "yyyy MMMM",
           monthsField = "months"
         ),
-        # Wrapped with shinycssloaders
         withSpinner(
           girafeOutput("time_series_plot", height = "auto"),
-          type = 8, color = "#003087", size = 0.7
+          type = SPINNER_TYPE, color = "#003087", size = 0.7
         )
       ),
 
@@ -248,10 +242,9 @@ ui <- page_navbar(
           dateFormat = "yyyy MMMM",
           monthsField = "months"
         ),
-        # Wrapped with shinycssloaders
         withSpinner(
           girafeOutput("choropleth", height = "auto"),
-          type = 8, color = "#003087", size = 0.7
+          type = SPINNER_TYPE, color = "#003087", size = 0.7
         )
       ),
 
@@ -259,7 +252,7 @@ ui <- page_navbar(
       div(
         class = "col-md-4 custom-plot-block",
         div(
-          class = "funnel-control-header d-flex align-items-end justify-content-between",
+          class = "funnel-control-header",
           airDatepickerInput(
             inputId = "trust_date",
             label = "Select Funnel Target Month:",
@@ -271,28 +264,32 @@ ui <- page_navbar(
             dateFormat = "yyyy MMMM",
             monthsField = "months"
           ),
+          # Native Bootstrap 5 Reactivity Form Switch Wrapper Architecture
           div(
-            style = "margin-bottom: 6px; padding-right: 5px; height: 22px;", 
-            prettySwitch(
-              inputId = "log_x",
-              label = "Log X-Axis",
-              value = FALSE,
-              fill = TRUE,
-              inline = TRUE,
-              status = "primary"
+            class = "funnel-switch-container",
+            div(
+              class = "form-check form-switch",
+              tags$input(
+                class = "form-check-input",
+                type = "checkbox",
+                id = "log_x"
+              ),
+              tags$label(
+                class = "form-check-label",
+                `for` = "log_x",
+                "Log X-Axis"
+              )
             )
           )
         ),
-        # Wrapped with shinycssloaders
         withSpinner(
           girafeOutput("funnel_plot", height = "auto"),
-          type = 8, color = "#003087", size = 0.7
+          type = SPINNER_TYPE, color = "#003087", size = 0.7
         )
       )
     )
   )
 )
-
 
 server <- function(input, output, session) {
   tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
@@ -391,7 +388,10 @@ server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
     req(funnel_cache())
 
-    selected_plot <- if (input$log_x) {
+    # Safely handle potential initialization NULL values from HTML components
+    is_log <- !is.null(input$log_x) && isTRUE(input$log_x)
+
+    selected_plot <- if (is_log) {
       funnel_cache()$log
     } else {
       funnel_cache()$linear

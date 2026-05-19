@@ -35,9 +35,8 @@ round_denom <- function(val, round = 25) {
 # PLOT FUNCTIONS
 # ==========================================
 
-funnel_plot <- function(data, base = 11, wrap = 40) {
-  over_dispertion <- 3
-  line_breaks <- c("95%" = 1.96, "99.7%" = 3)
+funnel_plot <- function(data, base = 11, wrap = 40, log_x = FALSE, zebra = TRUE, sigmas = seq(0.5, 5.0, by = 0.5)) {
+  over_dispersion <- 3 
 
   plot_data <- data %>%
     filter(period == max(period)) %>%
@@ -61,50 +60,90 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
 
   x_min <- min(plot_data$tot_ae_adm)
   x_max <- max(plot_data$tot_ae_adm)
+  
+  y_limit <- max(max(current_rate) * 1.2, 0.02)
+  x_limit_extended <- x_max * 1.02
 
-  funnel_lines <- purrr::map_df(names(line_breaks), function(label) {
-    z <- line_breaks[label]
-    tibble(
-      tot_ae_adm = seq(x_min, x_max, length.out = 500),
+  # FIX: Set the sequence to start slightly below your minimum data point 
+  # instead of 1, preventing the standard error from exploding to infinity.
+  x_seq <- seq(x_min * 0.4, x_max * 1.05, length.out = 500)
+
+  sorted_sigmas <- sort(unique(sigmas))
+  
+  funnel_base <- tibble(tot_ae_adm = x_seq) %>%
+    mutate(
       logit_mu = log(mu / (1 - mu)),
-      logit_se = sqrt(over_dispertion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu))),
-      upper = 1 / (1 + exp(-(logit_mu + z * logit_se))),
-      lower = 1 / (1 + exp(-(logit_mu - z * logit_se))),
-      label = label
+      logit_se = sqrt(over_dispersion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu)))
+    )
+
+  funnel_lines <- purrr::map_df(sorted_sigmas, function(z) {
+    tibble(
+      tot_ae_adm = x_seq,
+      upper = 1 / (1 + exp(-(funnel_base$logit_mu + z * funnel_base$logit_se))),
+      sigma = as.character(z),
+      z_val = z
     )
   })
 
-  unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
-  breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
+  funnel_ribbons <- tibble()
+  if (zebra && length(sorted_sigmas) >= 2) {
+    stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
+    
+    funnel_ribbons <- purrr::map_df(stripe_indices, function(i) {
+      z_lower <- sorted_sigmas[i]
+      z_upper <- sorted_sigmas[i + 1]
+      
+      # FIX: Use pmin() to cap the ribbon ceiling at the chart's y_limit. 
+      # This stops the ribbon from creating an artificial vertical pillar.
+      tibble(
+        tot_ae_adm = x_seq,
+        ymin = pmin(1 / (1 + exp(-(funnel_base$logit_mu + z_lower * funnel_base$logit_se))), y_limit),
+        ymax = pmin(1 / (1 + exp(-(funnel_base$logit_mu + z_upper * funnel_base$logit_se))), y_limit),
+        group_id = paste0(z_lower, "-", z_upper)
+      )
+    })
+  }
 
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
-  rate_breaks <- c(1 / 400, 1 / 200, 1 / 100, 1 / 75, 1 / 50)
-
-  y_limit <- max(max(current_rate) * 1.2, 0.02)
-  # Reduced from 1.1 to 1.02 to tighten horizontal space right of the data
-  x_limit_extended <- x_max * 1.02
 
   p <- ggplot2::ggplot(
     plot_data,
-    ggplot2::aes(x = tot_ae_adm, y = rate, col = rate)
-  ) +
+    ggplot2::aes(x = tot_ae_adm, y = rate)
+  )
+  
+  if (zebra && nrow(funnel_ribbons) > 0) {
+    p <- p + ggplot2::geom_ribbon(
+      data = funnel_ribbons,
+      ggplot2::aes(x = tot_ae_adm, ymin = ymin, ymax = ymax, group = group_id),
+      inherit.aes = FALSE,
+      fill = "grey40",
+      alpha = 0.05
+    )
+  }
+
+  p <- p + 
     ggplot2::geom_line(
       data = funnel_lines,
-      ggplot2::aes(y = upper, group = label),
-      color = "gray60",
-      linetype = "dashed",
-      alpha = 1
+      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, alpha = z_val),
+      color = "grey50",
+      linetype = "dashed"
     ) +
+    ggplot2::scale_alpha_continuous(
+      range = c(0.6, 0.15), 
+      guide = "none"
+    ) +
+    
     ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
+    
     ggplot2::annotate(
       "text",
       x = x_max,
       y = mu,
       colour = "steelblue",
       label = paste0("National average\n(", rate_labeller(mu), ")"),
-      hjust = 1.05, # Flipped to inside the plot canvas so it doesn't require clip expansion
+      hjust = 1.05, 
       vjust = 0.5,
-      size = base * 0.8 / 2.83464, # Matches ggplot text sizing down to baseline scale
+      size = base * 0.8 / 2.83464, 
       fontface = "italic"
     ) +
     ggplot2::annotate(
@@ -116,22 +155,20 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
         "Dashed lines represent control limits, which define the range of expected variation with hospital volume.",
         wrap * 0.6
       ),
-      hjust = 1, # Flipped to inside the plot canvas so it doesn't require clip expansion
+      hjust = 1.05, 
       vjust = 1.5,
-      size = base * 0.8 / 2.83464, # Matches ggplot text sizing down to baseline scale
+      size = base * 0.8 / 2.83464, 
       fontface = "italic"
     ) +
     ggiraph::geom_point_interactive(
-      aes(tooltip = tooltip),
+      aes(tooltip = tooltip, col = rate), 
       size = 2.5,
       alpha = 0.6
     ) +
     ggplot2::labs(
       title = str_wrap("Delay-related deaths per trust", wrap),
-      # Combine subtitle and caption text using a newline (\n)
-      # subtitle = str_wrap("Dashed lines represent control limits, which define the range of expected variation with hospital volume.",  wrap*1.25),
-      x = "Total type-1 A&E Admissions",
-      y = NULL, #"Expected delay-related deaths per 1000 admission",
+      x = "Total type-1 A&E admissions",
+      y = NULL,
       colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     scale_y_continuous(limits = c(0, y_limit), labels = \(x) {
@@ -141,8 +178,6 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
     scale_colour_stepsn(
       n.breaks = 5,
       colors = as.character(base_colors),
-      # breaks = rate_breaks,
-      # values = scales::rescale(rate_breaks),
       labels = per_k_labeller,
       guide = guide_colorsteps(
         title.position = "top",
@@ -159,22 +194,10 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
     ggplot2::theme_minimal(base_size = base) +
     ggplot2::theme(
       plot.margin = margin(5, 5, 5, 5),
-
-      # Aligns titles to the entire plot width rather than the inner panel grid
-      # plot.title.position = "plot",
-
-      # Style the multi-line subtitle block
-      plot.subtitle = element_text(
-        color = "gray30",
-        size = base * 0.85,
-        lineheight = 1.2 # Adds clean vertical breathing room between the lines
-      ),
-
       axis.title.y = element_text(
-        vjust = 2.5, # Pushes text outward away from the numbers
-        margin = margin(r = 10) # Alternately guarantees a 10pt buffer on the right
+        vjust = 2.5,
+        margin = margin(r = 10)
       ),
-
       legend.position = "bottom",
       legend.title = element_text(
         hjust = 0.5,
@@ -182,9 +205,13 @@ funnel_plot <- function(data, base = 11, wrap = 40) {
       ),
       legend.text = element_text(size = base * 0.8)
     )
-  p
-}
 
+    if(log_x){
+      p <- p + scale_x_log10(labels = scales::comma)
+    }
+  
+  return(p)
+}
 
 time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
   plot_data <- data %>%

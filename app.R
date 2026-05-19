@@ -159,6 +159,13 @@ ui <- page_navbar(
           dateFormat = "yyyy MMMM", # Displays as '2026 April'
           monthsField = "months"
         ),
+        prettySwitch(
+          inputId = "log_x",
+          label = "Logarithmic x-scale:",
+          value = FALSE,
+          fill = TRUE,
+          status = "primary"
+        ),
         girafeOutput("funnel_plot", height = "auto")
       )
     )
@@ -254,7 +261,7 @@ server <- function(input, output, session) {
   output$funnel_plot <- renderGirafe({
     filtered_funnel_data <- ae_impacts %>%
       filter(period == target_month_trust())
-    p <- funnel_plot(filtered_funnel_data, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
+    p <- funnel_plot(filtered_funnel_data, BASE_FONT_SIZE, PLOT_TITLE_WRAP, log_x = input$log_x)
     girafe(
       ggobj = p,
       options = list(

@@ -16,7 +16,7 @@ require(ggrepel)
 
 # UI params
 PLOT_TITLE_WRAP <- 65
-BASE_FONT_SIZE <- 11
+BASE_FONT_SIZE <- 10
 SPINNER_TYPE <- 8
 
 # Utils

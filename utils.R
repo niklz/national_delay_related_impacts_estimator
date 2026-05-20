@@ -18,7 +18,7 @@ per_k_labeller <- function(x) {
   ifelse(
     x < 1e-10,
     "0",
-    paste0(round(1000 * x), " per mille\n", "(1 in ", round(1 / x), ")")
+    paste0(round(1000 * x), " per thousand\n", "(1 in ", round(1 / x), ")")
   )
 }
 
@@ -43,17 +43,16 @@ funnel_plot <- function(
   over_dispersion = 3,
   sigmas = seq(0.5, 5.0, by = 0.5)
 ) {
-  # 1. High-speed Vectorized Data Preparation
+
   plot_data <- data %>%
-    filter(ae_type == "Type 1 (Major)", org != "Total") %>%
-    dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-    dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
+    filter(ae_type == "Type 1 (Major)", org != "Total") #%>%
+    # dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+    # dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
 
   if (nrow(plot_data) == 0) {
     return(ggplot() + theme_minimal())
   }
 
-  # Calculate constants up front to avoid repeated sum iterations
   sum_excess <- sum(plot_data$excess_mort)
   sum_adm <- sum(plot_data$tot_ae_adm)
   mu <- sum_excess / sum_adm
@@ -76,19 +75,16 @@ funnel_plot <- function(
       )
     )
 
-  # 2. Derive Coordinate Anchors
-  x_min <- min(plot_data$tot_ae_adm)
-  x_max <- max(plot_data$tot_ae_adm)
-  y_limit <- max(max(plot_data$rate) * 1.2, 0.02)
+  x_min <- min(plot_data$tot_ae_adm, na.rm = TRUE)
+  x_max <- max(plot_data$tot_ae_adm, na.rm = TRUE)
+  y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
   x_limit_extended <- x_max * 1.02
 
-  # 3. Vectorized Mathematical Grid Generation
   x_seq <- seq(x_min * 0.4, x_max * 1.05, length.out = 250)
   sorted_sigmas <- sort(unique(sigmas))
 
   logit_mu <- log(mu / (1 - mu))
 
-  # FIX: Clean, foolproof combination matrix using tidyr::crossing.
   funnel_lines <- tidyr::crossing(
     tot_ae_adm = x_seq,
     z_val = sorted_sigmas
@@ -100,7 +96,6 @@ funnel_plot <- function(
     ) %>%
     arrange(sigma, tot_ae_adm)
 
-  # Fast calculation of ribbons
   funnel_ribbons <- tibble()
   if (zebra && length(sorted_sigmas) >= 2) {
     stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
@@ -127,7 +122,6 @@ funnel_plot <- function(
       dplyr::bind_rows()
   }
 
-  # 4. Canvas Assembly Pipeline
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
 
   p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
@@ -360,11 +354,12 @@ funnel_plot <- function(
   sigmas = seq(0.5, 5.0, by = 0.5),
   selected_trusts = NULL # <-- STEP 1: Add argument to receive active selection vector
 ) {
+
   # 1. High-speed Vectorized Data Preparation
   plot_data <- data %>%
-    filter(ae_type == "Type 1 (Major)", org != "Total") %>%
-    dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-    dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
+    filter(ae_type == "Type 1 (Major)", org != "Total") #%>%
+    # dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+    # dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
 
   if (nrow(plot_data) == 0) {
     return(ggplot() + theme_minimal())
@@ -403,7 +398,7 @@ funnel_plot <- function(
   # 2. Derive Coordinate Anchors
   x_min <- min(plot_data$tot_ae_adm)
   x_max <- max(plot_data$tot_ae_adm)
-  y_limit <- max(max(plot_data$rate) * 1.2, 0.02)
+  y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
   x_limit_extended <- x_max * 1.02
 
   # 3. Vectorized Mathematical Grid Generation

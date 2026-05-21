@@ -1,0 +1,142 @@
+ /* Layout & Structural Spacing */
+      .container-fluid { padding: 0.5rem 1rem !important; }
+      .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
+      
+      /* Chart Row Constraints */
+      .chart-row {
+        margin-top: 15px !important;
+      }
+      
+      .custom-plot-container {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+      }
+      
+      .custom-plot-container .shiny-html-output,
+      .girafe_container_std {
+        width: 100% !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
+      }
+
+      /* Global Input Form Defaults */
+      .shiny-input-container { margin-bottom: 0.25rem !important; width: 100% !important; }
+      .shiny-input-container label { font-weight: 600; margin-bottom: 0.2rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+      .shiny-spinner-output-container { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; }
+
+      /* ==============================================================================
+         UNIFIED HEADER CONTROL SECTIONS (80% Relative Sizing / 220px Safeguard Floor)
+         ============================================================================== */
+      
+      .slider-breathing-room,
+      .choropleth-control-header,
+      .funnel-control-header {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 80% !important;
+        min-width: 220px !important;
+        max-width: 100% !important;
+        display: flex !important;
+      }
+
+      /* Column 1: Align from top so text line matches neighboring text labels precisely */
+      .slider-breathing-room {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        padding-top: 5px !important;
+      }
+      
+      .slider-breathing-room .shiny-input-container.form-group {
+        margin: 0 !important;
+        width: 100% !important;
+        text-align: left !important;
+      }
+
+      /* Columns 2 & 3: Align to bottom baseline so input blocks line up perfectly */
+      .choropleth-control-header,
+      .funnel-control-header {
+        align-items: flex-end !important;
+        justify-content: space-between !important;
+        gap: 15px;
+      }
+
+      .choropleth-control-header .shiny-input-container,
+      .funnel-control-header .shiny-input-container { 
+        margin-bottom: 0 !important; 
+        width: auto !important;
+        flex-grow: 1;
+      }
+
+      /* Hide the non-functional/misleading airDatepicker icon addon block */
+      .datepicker--addon {
+        display: none !important;
+      }
+
+      /* Custom Bootstrap Form Switch Overrides for clean iOS theme match */
+      .funnel-switch-container {
+        display: flex !important;
+        align-items: center !important;
+        height: 38px;
+        margin-bottom: 0px;
+        padding-left: 0px !important;
+        flex-shrink: 0;
+      }
+      .funnel-switch-container .form-check {
+        padding-left: 2.5em !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      .funnel-switch-container .form-check-input {
+        height: 1.35em !important;
+        width: 2.4em !important;
+        margin-left: -2.5em !important;
+        cursor: pointer !important;
+        background-color: #e9ecef;
+        border-color: #ced4da;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e\") !important;
+        transition: background-position .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out !important;
+      }
+      .funnel-switch-container .form-check-input:checked {
+        background-color: #003087 !important;
+        border-color: #003087 !important;
+        background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e\") !important;
+      }
+      .funnel-switch-container .form-check-label {
+        font-weight: 600 !important;
+        font-size: 11px !important;
+        color: #666 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        margin-left: 8px !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        white-space: nowrap !important;
+      }
+/* Force consistent border colors across different input libraries */
+      .air-datepicker-global-container, 
+      .vscomp-toggle-button, 
+      input.airDatepickerInput {
+        border: 1px solid #ced4da !important;
+        border-radius: 4px !important;
+        height: 38px !important; /* Forces uniform heights */
+      }
+
+      /* Highlight border color on active focus */
+      .vscomp-wrapper:focus .vscomp-toggle-button,
+      input.airDatepickerInput:focus {
+        border-color: #003087 !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 48, 135, 0.25) !important;
+      }
+
+      /* Fix for Option B: Truncate long trust tags with an ellipsis instead of expanding */
+      .vscomp-wrapper {
+        max-width: 100% !important;
+      }
+      .vscomp-value-tag {
+        max-width: 130px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+      }

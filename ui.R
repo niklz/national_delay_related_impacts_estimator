@@ -3,11 +3,25 @@ ui <- page_navbar(
     style = "margin: 0; padding-top: 0.25rem; font-size: 24px; color: #000000; max-width: 900px; line-height: 1.4;",
     "NHS National A&E Delay-Related Impacts Dashboard"
   ),
-  
-  header = tags$p(
+
+header = tags$p(
     style = "margin: 0; padding-top: 0.25rem; font-size: 18px; color: #555; max-width: 1080px; line-height: 1.4;",
-    "This dashboard displays estimated excess deaths...",
-    tags$a(href = "https://doi.org/10.1136/emermed-2025-214983", target = "_blank", "Howlett et al.", style = "color: #003087; text-decoration: underline;")
+    "This dashboard displays estimated excess deaths associated with prolonged waits for A&E admission, ",
+    "applying the risk associations established in ",
+    tags$a(
+      href = "https://doi.org/10.1136/emermed-2025-214983",
+      target = "_blank",
+      "Howlett et al.",
+      style = "color: #003087; text-decoration: underline;"
+    ),
+    ". Waiting times and admission volumes data are sourced directly from ",
+    tags$a(
+      href = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
+      target = "_blank",
+      "NHS England Statistics",
+      style = "color: #003087; text-decoration: underline;"
+    ),
+    ". All metrics are expressed as rates per 1,000 Type-1 A&E admissions."
   ),
 
   theme = bs_theme(
@@ -25,26 +39,19 @@ ui <- page_navbar(
   # Wrap main content in a nav_panel to fit the page_navbar structure
   nav_panel(
     title = "Dashboard",
-    
+
     layout_columns(
       col_widths = c(4, 4, 4), # Creates the 3-column layout automatically
-      
-      # ==========================================
-      # CARD 1: TIME SERIES
-      # ==========================================
+
       card(
         full_screen = TRUE,
-        card_header(
-          class = "bg-light",
-          tags$strong("Time Series Impact")
-        ),
         card_body(
-          class = "d-flex flex-column align-items-center justify-content-center",
-          style = "overflow: hidden !important;",
-          
-          # Control Wrapper (Protected from squishing)
+          class = "d-flex flex-column align-items-stretch", # Changed: stack cleanly from top to bottom
+          style = "overflow: hidden !important; padding: 1rem;",
+
+          # Selector container gets natural space
           div(
-            style = "width: 100%; margin-bottom: 10px; flex-shrink: 0;",
+            class = "slider-breathing-room",
             sliderInput(
               inputId = "ts_date_slider",
               label = "Select time-series window:",
@@ -56,10 +63,10 @@ ui <- page_navbar(
               width = "100%"
             )
           ),
-          
-          # Output Wrapper (Flexible, bounds the spinner and chart)
+
+          # Flexible wrapper that yields cleanly to the selector above
           div(
-            style = "flex-grow: 1; width: 100%; height: 100%; min-height: 0; overflow: hidden;",
+            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
             withSpinner(
               girafeOutput("time_series_plot", width = "100%", height = "100%"),
               type = SPINNER_TYPE,
@@ -75,17 +82,12 @@ ui <- page_navbar(
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header(
-          class = "bg-light",
-          tags$strong("Regional Distribution")
-        ),
         card_body(
-          class = "d-flex flex-column align-items-center justify-content-center",
-          style = "overflow: hidden !important;",
-          
-          # Control Wrapper
+          class = "d-flex flex-column align-items-stretch", # Changed: top to bottom stacking
+          style = "overflow: hidden !important; padding: 1rem;",
+
           div(
-            style = "width: 100%; margin-bottom: 10px; flex-shrink: 0;",
+            class = "choropleth-control-header",
             airDatepickerInput(
               inputId = "cluster_date",
               label = "Select target month:",
@@ -100,10 +102,9 @@ ui <- page_navbar(
               width = "100%"
             )
           ),
-          
-          # Output Wrapper
+
           div(
-            style = "flex-grow: 1; width: 100%; height: 100%; min-height: 0; overflow: hidden;",
+            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
             withSpinner(
               girafeOutput("choropleth", width = "100%", height = "100%"),
               type = SPINNER_TYPE,
@@ -119,20 +120,16 @@ ui <- page_navbar(
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header(
-          class = "bg-light",
-          tags$strong("Trust-Level Funnel Plot")
-        ),
         card_body(
-          class = "d-flex flex-column align-items-center justify-content-center",
-          style = "overflow: hidden !important;",
-          
-          # Controls grouped in a flex container (Protected from squishing)
+          class = "d-flex flex-column align-items-stretch", # Changed: top to bottom stacking
+          style = "overflow: hidden !important; padding: 1rem;",
+
           div(
-            style = "display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 15px; width: 100%; flex-shrink: 0;",
-            
+            class = "funnel-control-header",
+            style = "flex-wrap: wrap;",
+
             div(
-              style = "flex: 1 1 140px; min-width: 0;", 
+              style = "flex: 1 1 140px; min-width: 0;",
               airDatepickerInput(
                 inputId = "trust_date",
                 label = "Select target month:",
@@ -147,9 +144,9 @@ ui <- page_navbar(
                 width = "100%"
               )
             ),
-            
+
             div(
-              style = "flex: 2 1 180px; min-width: 0;", 
+              style = "flex: 2 1 180px; min-width: 0;",
               shinyWidgets::virtualSelectInput(
                 inputId = "highlighted_trusts",
                 label = "Highlight Trust(s):",
@@ -160,23 +157,25 @@ ui <- page_navbar(
                 width = "100%"
               )
             ),
-            
+
             div(
               class = "funnel-switch-container",
-              style = "flex: 0 0 auto;", 
               div(
                 class = "form-check form-switch",
-                tags$input(class = "form-check-input", type = "checkbox", id = "log_x"),
+                tags$input(
+                  class = "form-check-input",
+                  type = "checkbox",
+                  id = "log_x"
+                ),
                 tags$label(class = "form-check-label", `for` = "log_x", "Log X")
               )
             )
           ),
-          
-          # Output Wrapper
+
           div(
-            style = "flex-grow: 1; width: 100%; height: 100%; min-height: 0; overflow: hidden;",
+            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
             withSpinner(
-              girafeOutput("funnel_plot", width = "100%", height = "100%"), 
+              girafeOutput("funnel_plot", width = "100%", height = "100%"),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7

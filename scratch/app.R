@@ -12,7 +12,7 @@ ui <- page_navbar(
   # and locks the entire graphic inside a rigid aspect-ratio box that respects card heights.
   tags$head(
     tags$style(HTML("
-      /* 1. Neutralize ggiraph's width-based padding container */
+      /* 1. Reset ggiraph's default sizing loop wrappers */
       .html-widget.girafe > div {
         padding-top: 0 !important;
         height: 100% !important;
@@ -22,14 +22,14 @@ ui <- page_navbar(
         justify-content: center !important;
       }
       
-      /* 2. Bind the SVG to a hard aspect ratio and set layout caps */
+      /* 2. Constrain the chart frame from crashing past the bottom layout margin */
       .html-widget.girafe svg {
         max-width: 100% !important;
-        max-height: 100% !important;
-        width: auto !important;
+        max-height: 70% !important; /* Drops the vertical footprint slightly to safe-zone the x-axis */
+        width: 100% !important;
         height: auto !important;
         aspect-ratio: 7 / 4.5 !important;
-        object-fit: contain !important;
+        object-fit: fill !important; /* Forces the internal engine layers to map precisely inside boundaries */
       }
     "))
   ),

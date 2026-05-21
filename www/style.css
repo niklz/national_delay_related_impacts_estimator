@@ -66,15 +66,15 @@
     min-width: 220px !important;
     max-width: 100% !important;
     display: flex !important;
-    flex-shrink: 0 !important; /* CRITICAL: Prevents layout from crushing input heights */
+    flex-shrink: 0 !important;
 }
 
-/* Card 1 Selector: Align from top for slider text layout matching */
+/* Card 1: Tighten the slider track spacing to bring the plot upwards */
 .slider-breathing-room {
     align-items: flex-start !important;
     justify-content: flex-start !important;
     padding-top: 5px !important;
-    margin-bottom: 10px !important;
+    margin-bottom: -15px !important; /* Pulls the plot area up to align titles */
 }
 
 .slider-breathing-room .shiny-input-container.form-group {
@@ -83,12 +83,13 @@
     text-align: left !important;
 }
 
-/* Cards 2 & 3 Selectors: Align to bottom baseline for absolute uniformity */
+/* Cards 2 & 3: Match the vertical footprint of the slider block */
 .choropleth-control-header,
 .funnel-control-header {
     align-items: flex-end !important;
     justify-content: space-between !important;
     gap: 15px;
+    padding-top: 18px !important; /* Pushes the input down slightly to match slider depth */
     margin-bottom: 15px !important;
 }
 

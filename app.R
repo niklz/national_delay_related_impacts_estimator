@@ -16,7 +16,7 @@ require(ggrepel)
 
 # UI params
 PLOT_TITLE_WRAP <- 65
-BASE_FONT_SIZE <- 10
+BASE_FONT_SIZE <- 11
 SPINNER_TYPE <- 8
 
 # Utils
@@ -123,85 +123,105 @@ ui <- page_navbar(
   tags$head(
     tags$style(HTML(
       "
-      /* Main Canvas Area Spacing */
+      /* Layout & Structural Spacing */
       .container-fluid { padding: 0.5rem 1rem !important; }
       .navbar { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #e9ecef !important; margin-bottom: 0.5rem !important; }
       
-      /* Dashboard Component Cards */
-      .column-card {
-        border: 1px solid #e9ecef !important;
-        border-radius: 8px !important;
-        background-color: #ffffff !important;
-        padding: 16px !important;
-        height: 100% !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+      /* Chart Row Constraints */
+      .chart-row {
+        margin-top: 15px !important;
+      }
+      
+      .custom-plot-container {
         display: flex !important;
         flex-direction: column !important;
-        overflow: visible !important;
+        height: 100% !important;
       }
-
-      /* Relaxed Control Block Wrapper - Clears space for labels naturally */
-      .card-header-control-block {
-        min-height: 75px !important;
-        display: flex !important;
-        align-items: flex-end !important;
-        margin-bottom: 15px !important;
-        width: 100% !important;
-        overflow: visible !important;
-      }
-
-      /* Form Elements Global Styling Overrides */
-      .shiny-input-container { margin-bottom: 0 !important; width: 100% !important; }
-      .shiny-input-container label { font-weight: 600; margin-bottom: 0.4rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-      .shiny-spinner-output-container { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; width: 100% !important; }
       
-      .girafe_container_std { width: 100% !important; max-width: 100% !important; }
-      .datepicker--addon { display: none !important; }
-
-      .vscomp-toggle-button, 
-      input.airDatepickerInput {
-        border: 1px solid #ced4da !important;
-        border-radius: 4px !important;
-        height: 38px !important;
+      .custom-plot-container .shiny-html-output,
+      .girafe_container_std {
+        width: 100% !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
       }
 
-      .vscomp-wrapper:focus .vscomp-toggle-button,
-      input.airDatepickerInput:focus {
-        border-color: #003087 !important;
-        box-shadow: 0 0 0 0.2rem rgba(0, 48, 135, 0.25) !important;
+      /* Global Input Form Defaults */
+      .shiny-input-container { margin-bottom: 0.25rem !important; width: 100% !important; }
+      .shiny-input-container label { font-weight: 600; margin-bottom: 0.2rem; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+      .shiny-spinner-output-container { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; }
+
+      /* ==============================================================================
+         UNIFIED HEADER CONTROL SECTIONS (80% Relative Sizing / 220px Safeguard Floor)
+         ============================================================================== */
+      
+      .slider-breathing-room,
+      .choropleth-control-header,
+      .funnel-control-header {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 80% !important;
+        min-width: 220px !important;
+        max-width: 100% !important;
+        display: flex !important;
       }
 
-      /* Dropdown text wrapping guard */
-      .vscomp-wrapper { max-width: 100% !important; }
-      .vscomp-value-tag {
-        max-width: 110px !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
+      /* Column 1: Align from top so text line matches neighboring text labels precisely */
+      .slider-breathing-room {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        padding-top: 5px !important;
+      }
+      
+      .slider-breathing-room .shiny-input-container.form-group {
+        margin: 0 !important;
+        width: 100% !important;
+        text-align: left !important;
       }
 
-      /* Custom Form Switch Overrides */
+      /* Columns 2 & 3: Align to bottom baseline so input blocks line up perfectly */
+      .choropleth-control-header,
+      .funnel-control-header {
+        align-items: flex-end !important;
+        justify-content: space-between !important;
+        gap: 15px;
+      }
+
+      .choropleth-control-header .shiny-input-container,
+      .funnel-control-header .shiny-input-container { 
+        margin-bottom: 0 !important; 
+        width: auto !important;
+        flex-grow: 1;
+      }
+
+      /* Hide the non-functional/misleading airDatepicker icon addon block */
+      .datepicker--addon {
+        display: none !important;
+      }
+
+      /* Custom Bootstrap Form Switch Overrides for clean iOS theme match */
       .funnel-switch-container {
         display: flex !important;
         align-items: center !important;
         height: 38px;
+        margin-bottom: 0px;
         padding-left: 0px !important;
         flex-shrink: 0;
       }
       .funnel-switch-container .form-check {
-        padding-left: 2.3em !important;
+        padding-left: 2.5em !important;
         margin: 0 !important;
         display: flex !important;
         align-items: center !important;
       }
       .funnel-switch-container .form-check-input {
-        height: 1.3em !important;
-        width: 2.3em !important;
-        margin-left: -2.3em !important;
+        height: 1.35em !important;
+        width: 2.4em !important;
+        margin-left: -2.5em !important;
         cursor: pointer !important;
         background-color: #e9ecef;
         border-color: #ced4da;
         background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e\") !important;
+        transition: background-position .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out !important;
       }
       .funnel-switch-container .form-check-input:checked {
         background-color: #003087 !important;
@@ -214,10 +234,38 @@ ui <- page_navbar(
         color: #666 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.5px !important;
-        margin-left: 6px !important;
+        margin-left: 8px !important;
         cursor: pointer !important;
+        user-select: none !important;
         white-space: nowrap !important;
       }
+/* Force consistent border colors across different input libraries */
+      .air-datepicker-global-container, 
+      .vscomp-toggle-button, 
+      input.airDatepickerInput {
+        border: 1px solid #ced4da !important;
+        border-radius: 4px !important;
+        height: 38px !important; /* Forces uniform heights */
+      }
+
+      /* Highlight border color on active focus */
+      .vscomp-wrapper:focus .vscomp-toggle-button,
+      input.airDatepickerInput:focus {
+        border-color: #003087 !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 48, 135, 0.25) !important;
+      }
+
+      /* Fix for Option B: Truncate long trust tags with an ellipsis instead of expanding */
+      .vscomp-wrapper {
+        max-width: 100% !important;
+      }
+      .vscomp-value-tag {
+        max-width: 130px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+      }
+
       "
     ))
   ),
@@ -225,44 +273,54 @@ ui <- page_navbar(
   div(
     class = "container-fluid",
 
-    # THREE COLUMN GRID SYSTEM
+    # ROW 1: Controls Only
     div(
-      class = "row gx-4 mt-2",
-      
-      # COLUMN 1: Regional Time Series
+      class = "row gx-4 control-row",
       div(
         class = "col-md-4",
         div(
-          class = "column-card",
-          div(
-            class = "card-header-control-block",
-            sliderInput(
-              inputId = "ts_date_slider",
-              label = "Select time-series window:",
-              min = min_date,
-              max = max_date,
-              value = c(max_date - months(6), max_date),
-              timeFormat = "%Y-%m",
-              step = 30.5,
-              width = "100%"
-            )
-          ),
-          withSpinner(
-            girafeOutput("time_series_plot", height = "auto"),
-            type = SPINNER_TYPE, color = "#003087", size = 0.7
+          class = "slider-breathing-room",
+          sliderInput(
+            inputId = "ts_date_slider",
+            label = "Select time-series window:",
+            min = min_date,
+            max = max_date,
+            value = c(max_date - months(6), max_date),
+            timeFormat = "%Y-%m",
+            step = 30.5,
+            width = "100%"
           )
         )
       ),
-
-      # COLUMN 2: ICB Cluster Choropleth Map
       div(
         class = "col-md-4",
         div(
-          class = "column-card",
+          class = "choropleth-control-header",
+          airDatepickerInput(
+            inputId = "cluster_date",
+            label = "Select target month:",
+            value = max_date,
+            minDate = min_date,
+            maxDate = max_date,
+            view = "months",
+            minView = "months",
+            dateFormat = "yyyy MMMM",
+            monthsField = "months",
+            addon = "none",
+            width = "100%"
+          )
+        )
+      ),
+      div(
+        class = "col-md-4",
+        div(
+          class = "funnel-control-header",
+          style = "display: flex !important; align-items: flex-end !important; gap: 10px; width: 80% !important; min-width: 220px !important; margin-left: auto !important; margin-right: auto !important;",
+
           div(
-            class = "card-header-control-block",
+            style = "flex: 1 1 30%; min-width: 0;", # Prevents squishing
             airDatepickerInput(
-              inputId = "cluster_date",
+              inputId = "trust_date",
               label = "Select target month:",
               value = max_date,
               minDate = min_date,
@@ -275,69 +333,69 @@ ui <- page_navbar(
               width = "100%"
             )
           ),
-          withSpinner(
-            girafeOutput("choropleth", height = "auto"),
-            type = SPINNER_TYPE, color = "#003087", size = 0.7
-          )
-        )
-      ),
 
-      # COLUMN 3: Funnel Plot per Trust
-      div(
-        class = "col-md-4",
-        div(
-          class = "column-card",
           div(
-            class = "card-header-control-block",
-            style = "gap: 8px;",
-            
-            # Allocation A: Month Picker
-            div(
-              style = "flex: 0 1 32%; min-width: 0;",
-              airDatepickerInput(
-                inputId = "trust_date",
-                label = "Select target month:",
-                value = max_date,
-                minDate = min_date,
-                maxDate = max_date,
-                view = "months",
-                minView = "months",
-                dateFormat = "yyyy MMMM",
-                monthsField = "months",
-                addon = "none",
-                width = "100%"
-              )
-            ),
-            
-            # Allocation B: Virtual Search Input Field
-            div(
-              style = "flex: 1 1 44%; min-width: 0;",
-              shinyWidgets::virtualSelectInput(
-                inputId = "highlighted_trusts",
-                label = "Highlight Trust(s):",
-                choices = NULL,
-                multiple = TRUE,
-                search = TRUE,
-                placeholder = "Search...",
-                width = "100%"
-              )
-            ),
-            
-            # Allocation C: Axis Toggle Switch
-            div(
-              class = "funnel-switch-container",
-              style = "flex: 0 0 auto;",
-              div(
-                class = "form-check form-switch",
-                tags$input(class = "form-check-input", type = "checkbox", id = "log_x"),
-                tags$label(class = "form-check-label", `for` = "log_x", "Log X")
-              )
+            style = "flex: 1 1 50%; min-width: 0;", # Forces text truncation inside VirtualSelect
+            shinyWidgets::virtualSelectInput(
+              inputId = "highlighted_trusts",
+              label = "Highlight Trust(s):",
+              choices = NULL,
+              multiple = TRUE,
+              search = TRUE,
+              placeholder = "Type to search...",
+              width = "100%"
             )
           ),
-          withSpinner(
-            girafeOutput("funnel_plot", height = "auto"),
-            type = SPINNER_TYPE, color = "#003087", size = 0.7
+
+          div(
+            class = "funnel-switch-container",
+            style = "flex: 0 0 auto;", # Toggle switch keeps its exact size
+            div(
+              class = "form-check form-switch",
+              tags$input(
+                class = "form-check-input",
+                type = "checkbox",
+                id = "log_x"
+              ),
+              tags$label(
+                class = "form-check-label",
+                `for` = "log_x",
+                "Log X"
+              )
+            )
           )
+        )
+      )
+    ),
+
+    # ROW 2: Charts Only
+    div(
+      class = "row gx-4 chart-row",
+      div(
+        class = "col-md-4 custom-plot-container",
+        withSpinner(
+          girafeOutput("time_series_plot", height = "auto"),
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
+        )
+      ),
+      div(
+        class = "col-md-4 custom-plot-container",
+        withSpinner(
+          girafeOutput("choropleth", height = "auto"),
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
+        )
+      ),
+      div(
+        class = "col-md-4 custom-plot-container",
+        withSpinner(
+          girafeOutput("funnel_plot", height = "auto"), # FIXED Layout allocation target
+          type = SPINNER_TYPE,
+          color = "#003087",
+          size = 0.7
         )
       )
     )
@@ -360,12 +418,19 @@ server <- function(input, output, session) {
   # 1. Time Series
   output$time_series_plot <- renderGirafe({
     req(input$ts_date_slider)
-    start_dt <- floor_date(as.Date(input$ts_date_slider[1]), "month")
-    end_dt <- floor_date(as.Date(input$ts_date_slider[2]), "month")
 
-    filtered_ts_data <- ae_impacts %>% filter(period >= start_dt & period <= end_dt)
+    start_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[1]), "month")
+    end_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[2]), "month")
 
-    p <- time_series_plot(filtered_ts_data, region_plot, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
+    filtered_ts_data <- ae_impacts %>%
+      filter(period >= start_dt & period <= end_dt)
+
+    p <- time_series_plot(
+      filtered_ts_data,
+      region_plot,
+      BASE_FONT_SIZE,
+      PLOT_TITLE_WRAP
+    )
     girafe(
       ggobj = p,
       options = list(
@@ -376,14 +441,20 @@ server <- function(input, output, session) {
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),
-      width_svg = 6.0, height_svg = 5.0
+      width_svg = 6.0,
+      height_svg = 5.0
     )
   })
 
   # 2. Choropleth Map
   output$choropleth <- renderGirafe({
     filtered_map_data <- ae_impacts %>% filter(period == target_month_cluster())
-    p <- choropleth_plot(filtered_map_data, cluster_shp, BASE_FONT_SIZE, PLOT_TITLE_WRAP)
+    p <- choropleth_plot(
+      filtered_map_data,
+      cluster_shp,
+      BASE_FONT_SIZE,
+      PLOT_TITLE_WRAP
+    )
     girafe(
       ggobj = p,
       options = list(
@@ -394,36 +465,69 @@ server <- function(input, output, session) {
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),
-      width_svg = 6.0, height_svg = 5.0
+      width_svg = 6.0,
+      height_svg = 5.0
     )
   })
 
   # 3. Funnel Plot Dropdown Dynamic Syncing
   observe({
     req(target_month_trust())
-    available_trusts <- ae_impacts %>%
-      filter(period == target_month_trust(), ae_type == "Type 1 (Major)", org != "Total") %>%
-      filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-      filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
-      pull(org) %>% unique() %>% sort()
 
-    updateVirtualSelect("highlighted_trusts", choices = available_trusts, session = session)
+    available_trusts <- ae_impacts %>%
+      filter(
+        period == target_month_trust(),
+        ae_type == "Type 1 (Major)",
+        org != "Total"
+      ) %>%
+      dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+      dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
+      pull(org) %>%
+      unique() %>%
+      sort()
+
+    shinyWidgets::updateVirtualSelect(
+      "highlighted_trusts",
+      choices = available_trusts,
+      session = session
+    )
   })
 
+  # Reactive calculation pipeline for both coordinate variations
   funnel_cache <- reactive({
     req(target_month_trust())
-    filtered_funnel_data <- ae_impacts %>% filter(period == target_month_trust())
 
-    p_linear <- funnel_plot(filtered_funnel_data, BASE_FONT_SIZE, PLOT_TITLE_WRAP, log_x = FALSE, selected_trusts = input$highlighted_trusts)
-    p_log <- funnel_plot(filtered_funnel_data, BASE_FONT_SIZE, PLOT_TITLE_WRAP, log_x = TRUE, selected_trusts = input$highlighted_trusts)
+    filtered_funnel_data <- ae_impacts %>%
+      filter(period == target_month_trust())
+
+    p_linear <- funnel_plot(
+      filtered_funnel_data,
+      BASE_FONT_SIZE,
+      PLOT_TITLE_WRAP,
+      log_x = FALSE,
+      selected_trusts = input$highlighted_trusts
+    )
+    p_log <- funnel_plot(
+      filtered_funnel_data,
+      BASE_FONT_SIZE,
+      PLOT_TITLE_WRAP,
+      log_x = TRUE,
+      selected_trusts = input$highlighted_trusts
+    )
 
     list(linear = p_linear, log = p_log)
   })
 
   output$funnel_plot <- renderGirafe({
     req(funnel_cache())
+
     is_log <- !is.null(input$log_x) && isTRUE(input$log_x)
-    selected_plot <- if (is_log) funnel_cache()$log else funnel_cache()$linear
+
+    selected_plot <- if (is_log) {
+      funnel_cache()$log
+    } else {
+      funnel_cache()$linear
+    }
 
     girafe(
       ggobj = selected_plot,
@@ -435,7 +539,8 @@ server <- function(input, output, session) {
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),
-      width_svg = 6.0, height_svg = 5.0
+      width_svg = 6.0,
+      height_svg = 5.0
     )
   })
 }

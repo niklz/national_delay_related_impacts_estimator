@@ -41,7 +41,7 @@ funnel_plot <- function(
   log_x = FALSE,
   zebra = TRUE,
   over_dispersion = 3,
-  sigmas = seq(0.5, 5.0, by = 0.5)
+  sigmas = seq(0.5, 3, by = 0.5)
 ) {
 
   plot_data <- data %>%
@@ -352,58 +352,57 @@ funnel_plot <- function(
   log_x = FALSE,
   zebra = FALSE,
   over_dispersion = 3,
-  sigmas = seq(0.5, 5.0, by = 0.5),
-  selected_trusts = NULL # <-- STEP 1: Add argument to receive active selection vector
+  sigmas = seq(0.5, 3.0, by = 0.5),
+  selected_trusts = NULL 
 ) {
 
-  # 1. High-speed Vectorized Data Preparation
+  # 1. High-speed Vectorized Data Preparation (with strict log-safety filters)
   plot_data <- data %>%
-    filter(ae_type == "Type 1 (Major)", org != "Total") #%>%
-    # dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-    # dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
+    dplyr::filter(
+      ae_type == "Type 1 (Major)", 
+      org != "Total",
+      !is.na(tot_ae_adm),
+      tot_ae_adm > 0,           # Safe-guard against log(0) / division errors
+      !is.na(excess_mort)
+    )
 
   if (nrow(plot_data) == 0) {
-    return(ggplot() + theme_minimal())
+    return(ggplot2::ggplot() + ggplot2::theme_minimal())
   }
 
   sum_excess <- sum(plot_data$excess_mort)
   sum_adm <- sum(plot_data$tot_ae_adm)
   mu <- sum_excess / sum_adm
 
-  # STEP 2: Flag selected rows and map explicit aesthetic overrides
+  # Flag selected rows and map explicit aesthetic overrides
   plot_data <- plot_data %>%
-    mutate(
+    dplyr::mutate(
       rate = excess_mort / tot_ae_adm,
       z_score = (rate - mu) / sqrt(mu * (1 - mu) / tot_ae_adm),
       precise_denom = round(1 / rate),
-      is_highlighted = org %in% selected_trusts, # Logical flag
+      is_highlighted = org %in% selected_trusts, 
       
-      # Visual logic configuration profiles
       point_stroke = ifelse(is_highlighted, 1.8, 0.2),
       point_size   = ifelse(is_highlighted, 3.5, 2.5),
       point_alpha  = ifelse(is_highlighted, 1.0, 0.6),
       
       tooltip = paste0(
-        org,
-        ", ",
-        format(period, "%Y %B"),
-        "\n",
-        scales::comma(round(excess_mort)),
-        " delay-related deaths\n",
-        "Rate: 1 in ",
-        precise_denom,
-        " admissions"
+        org, ", ", format(period, "%Y %B"), "\n",
+        scales::comma(round(excess_mort)), " delay-related deaths\n",
+        "Rate: 1 in ", precise_denom, " admissions"
       )
     )
 
-  # 2. Derive Coordinate Anchors
-  x_min <- min(plot_data$tot_ae_adm, na.rm  = TRUE)
-  x_max <- max(plot_data$tot_ae_adm, na.rm  = TRUE)
+  # 2. Derive Coordinate Anchors (with absolute lower bound checks)
+  x_min <- max(1, min(plot_data$tot_ae_adm, na.rm = TRUE)) # Cannot be 0
+  x_max <- max(plot_data$tot_ae_adm, na.rm = TRUE)
   y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
   x_limit_extended <- x_max * 1.02
 
   # 3. Vectorized Mathematical Grid Generation
-x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
+  x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
+  if (x_seq_min <= 1) x_seq_min <- 1 # Double-check safety floor
+  
   x_seq <- seq(x_seq_min, x_max * 1.05, length.out = 250)
   
   sorted_sigmas <- sort(unique(sigmas))
@@ -413,14 +412,15 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
     tot_ae_adm = x_seq,
     z_val = sorted_sigmas
   ) %>%
-    mutate(
+    dplyr::mutate(
       logit_se = sqrt(over_dispersion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu))),
       upper = 1 / (1 + exp(-(logit_mu + z_val * logit_se))),
       sigma = factor(z_val)
     ) %>%
-    arrange(sigma, tot_ae_adm)
+    dplyr::filter(is.finite(upper)) %>% 
+    dplyr::arrange(sigma, tot_ae_adm)
 
-  funnel_ribbons <- tibble()
+  funnel_ribbons <- tibble::tibble()
   if (zebra && length(sorted_sigmas) >= 2) {
     stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
     logit_se_seq <- sqrt(over_dispersion) * sqrt(1 / (x_seq * mu * (1 - mu)))
@@ -428,13 +428,13 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
     funnel_ribbons <- lapply(stripe_indices, function(i) {
       z_lower <- sorted_sigmas[i]
       z_upper <- sorted_sigmas[i + 1]
-      tibble(
+      tibble::tibble(
         tot_ae_adm = x_seq,
         ymin = pmin(1 / (1 + exp(-(logit_mu + z_lower * logit_se_seq))), y_limit),
         ymax = pmin(1 / (1 + exp(-(logit_mu + z_upper * logit_se_seq))), y_limit),
         group_id = factor(paste0(z_lower, "-", z_upper))
       )
-    }) %>% dplyr::bind_rows()
+    }) %>% dplyr::bind_rows() %>% dplyr::filter(is.finite(ymin), is.finite(ymax))
   }
 
   # 4. Canvas Assembly Pipeline
@@ -451,42 +451,29 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
       )
   }
 
-# 1. Draw ONLY the half-sigma background lines (unlabeled, completely unbroken)
+  # 1. Background lines (Half sigmas)
   p <- p +
     ggplot2::geom_line(
       data = dplyr::filter(funnel_lines, z_val %% 1 != 0), 
       ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
-      alpha = 0.5, color = "grey50", linetype = "dashed", inherit.aes = FALSE
+      color = "grey50", linetype = "dashed", alpha = 0.4, inherit.aes = FALSE
     ) +
-    ggplot2::scale_alpha_continuous(range = c(0.6, 0.15), guide = "none") +
     ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5)
 
-  # 2. Draw full-sigma lines cleanly with stable native text positioning
+  # 2. Textpath Lines (Full sigmas)
   if (requireNamespace("geomtextpath", quietly = TRUE)) {
     p <- p +
       geomtextpath::geom_textline(
         data = dplyr::filter(funnel_lines, z_val %% 1 == 0), 
-        ggplot2::aes(
-          x = tot_ae_adm, 
-          y = upper, 
-          group = sigma, 
-          label = paste0(z_val, " SD")    # Keeps the text baseline intact
-        ),
-        color = "grey50", 
-        linetype = "dashed",
-        size = base * 0.75 / 2.83464, 
-        linewidth = 0.5, 
-        alpha = 0.5,
-        
-        # --- Native fixes ---
-        vjust = 0.5,                      # Perfectly centered vertically inside the line gap
-        hjust = 0.92,                     # Pushes the label to 92% of the way down the unbroken line
-        
-        inherit.aes = FALSE
+        ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, label = paste0(z_val, "σ")),
+        color = "grey50", linetype = "dashed", alpha = 0.4, textcolour = "black",
+        size = base * 0.75 / 2.83464, linewidth = 0.5, 
+        vjust = 0.5, hjust = 0.92, inherit.aes = FALSE
       )
   }
   
-    p <- p + ggplot2::annotate(
+  p <- p + 
+    ggplot2::annotate(
       "text", x = x_max, y = mu, colour = "steelblue",
       label = paste0("National average\n(", rate_labeller(mu), ")"),
       hjust = 1.05, vjust = 0.5, size = base * 0.8 / 2.83464, fontface = "italic"
@@ -497,24 +484,15 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
       hjust = 1.05, vjust = 1.5, size = base * 0.8 / 2.83464, fontface = "italic"
     ) +
     
-    # STEP 3: Rebuilt using interactive shape 21 for granular outline borders
     ggiraph::geom_point_interactive(
-      aes(
-        tooltip = tooltip, 
-        fill = rate,                  # Internal coloring maps to original scale
-        colour = is_highlighted,      # Explicit highlighting border color group
-        size = point_size,            # Scales up selected points dynamically
-        stroke = point_stroke,        # Beefs up the border outline width
-        alpha = point_alpha
+      ggplot2::aes(
+        tooltip = tooltip, fill = rate, colour = is_highlighted,      
+        size = point_size, stroke = point_stroke, alpha = point_alpha
       ),
-      shape = 21                      # Filled circle token supporting borders
+      shape = 21                      
     ) +
     
-    # STEP 4: Define highlight border color tokens (Dark Charcoal for highlights, Transparent for rest)
-    ggplot2::scale_colour_manual(
-      values = c("FALSE" = "transparent", "TRUE" = "#111111"),
-      guide = "none"
-    ) +
+    ggplot2::scale_colour_manual(values = c("FALSE" = "transparent", "TRUE" = "#111111"), guide = "none") +
     ggplot2::scale_size_identity(guide = "none") +
     ggplot2::scale_alpha_identity(guide = "none") +
     
@@ -522,21 +500,18 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
       title = str_wrap("Delay-related deaths per trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
-      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) # Changed from colour -> fill
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
     ) +
-    scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰")) +
     
-    # Switch guide mapping definition to scale_fill_stepsn
-    scale_fill_stepsn(
+    # Isolated and stabilized fill step scale bounds
+    ggplot2::scale_fill_stepsn(
       n.breaks = 5,
       colors = as.character(base_colors),
       labels = per_k_labeller,
-      guide = guide_colorsteps(
-        title.position = "top",
-        even.steps = TRUE,
-        show.limits = FALSE,
-        barheight = unit(0.04, 'npc'),
-        barwidth = unit(0.9, 'npc')
+      limits = c(0, y_limit), # Stops scale_fill from scanning wild transformed log limits
+      guide = ggplot2::guide_colorsteps(
+        title.position = "top", even.steps = TRUE, show.limits = FALSE,
+        barheight = unit(0.04, 'npc'), barwidth = unit(0.9, 'npc')
       )
     ) +
     ggplot2::theme_minimal(base_size = base) +
@@ -549,7 +524,9 @@ x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
       legend.text = element_text(size = base * 0.8)
     )
 
-if (log_x) {
+  # 5. Tight, Clean Axis Constraints 
+  # Separate out configurations completely to avoid overlapping scales/limits warning errors
+  if (log_x) {
     p <- p + 
       ggplot2::scale_x_log10(
         labels = scales::comma, 
@@ -561,13 +538,20 @@ if (log_x) {
         labels = \(x) str_c(1000 * x, " ‰"),
         expand = c(0, 0)
       )
-      # Removes coord_cartesian completely for log to stop the finite layout errors
   } else {
     p <- p + 
-      ggplot2::scale_x_continuous(labels = scales::comma) +
-      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰")) +
-      ggplot2::coord_cartesian(xlim = c(x_min, x_limit_extended), ylim = c(0, y_limit), clip = "on")
+      ggplot2::scale_x_continuous(
+        labels = scales::comma,
+        limits = c(x_min * 0.95, x_limit_extended),
+        expand = c(0, 0)
+      ) +
+      ggplot2::scale_y_continuous(
+        limits = c(0, y_limit), 
+        labels = \(x) str_c(1000 * x, " ‰"),
+        expand = c(0, 0)
+      )
   }
+
   return(p)
 }
 

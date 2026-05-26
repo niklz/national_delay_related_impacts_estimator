@@ -198,3 +198,77 @@ input.airDatepickerInput:focus {
     aspect-ratio: 6 / 5 !important; 
     object-fit: contain !important; /* Switched to contain: protects layout aspect ratio safely */
 }
+
+/* ==============================================================================
+   6. BSLIB CARD FULLSCREEN BUTTON CUSTOMIZATION (BODY ANCHORED)
+   ============================================================================== */
+/* Target the card body to ensure it acts as the relative boundary box */
+.card-body {
+    position: relative !important;
+}
+
+/* 1. STATE: CARD IS NORMAL (MINIMIZED) -> Show the styled custom button */
+.card:not([data-full-screen="true"]) .bslib-full-screen-enter {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    
+    /* Position at the top right of the card body */
+    top: 15px !important;
+    bottom: auto !important;
+    right: 15px !important;
+    position: absolute !important;
+    z-index: 1050 !important; 
+    
+    /* Structural Button Styling */
+    background-color: #ffffff !important; 
+    border: 1px solid #ced4da !important;
+    border-radius: 4px !important;
+    padding: 6px 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    height: 32px !important;
+    width: auto !important;
+    text-decoration: none !important;
+    color: #495057 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    cursor: pointer !important;
+}
+
+/* Ensure the SVG icon inside doesn't disappear or shrink abnormally */
+.card:not([data-full-screen="true"]) .bslib-full-screen-enter svg {
+    width: 14px !important;
+    height: 14px !important;
+    margin: 0 !important;
+    display: inline-block !important;
+}
+
+/* Hover state theme mapping matching your dark blue elements */
+.card:not([data-full-screen="true"]) .bslib-full-screen-enter:hover {
+    background-color: #f8f9fa !important;
+    border-color: #003087 !important;
+    color: #003087 !important;
+}
+
+/* Inject the text label cleanly right of the icon */
+.card:not([data-full-screen="true"]) .bslib-full-screen-enter::after {
+    content: 'View Fullscreen' !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    display: inline-block !important;
+}
+
+/* 2. STATE: CARD IS FULLSCREEN -> Hide the 'Enter' button completely */
+.card[data-full-screen="true"] .bslib-full-screen-enter {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Optional: Clean style pass for bslib's native Exit Close Button while in fullscreen */
+.bslib-full-screen-exit {
+    z-index: 2000 !important; /* Ensure the native close option is always reachable on top */
+}

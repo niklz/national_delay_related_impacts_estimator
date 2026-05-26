@@ -13,6 +13,7 @@ library(shinycssloaders)
 library(shinyWidgets)
 require(rmapshaper)
 require(ggrepel)
+library(geomtextpath)
 
 # UI params
 PLOT_TITLE_WRAP <- 65

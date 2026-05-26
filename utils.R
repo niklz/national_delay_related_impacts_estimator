@@ -145,7 +145,8 @@ funnel_plot <- function(
   p <- p +
     ggplot2::geom_line(
       data = funnel_lines,
-      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, alpha = z_val),
+      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
+      alpha = 0.6,
       color = "grey50",
       linetype = "dashed",
       inherit.aes = FALSE
@@ -349,7 +350,7 @@ funnel_plot <- function(
   base = 11,
   wrap = 40,
   log_x = FALSE,
-  zebra = TRUE,
+  zebra = FALSE,
   over_dispersion = 3,
   sigmas = seq(0.5, 5.0, by = 0.5),
   selected_trusts = NULL # <-- STEP 1: Add argument to receive active selection vector
@@ -396,13 +397,15 @@ funnel_plot <- function(
     )
 
   # 2. Derive Coordinate Anchors
-  x_min <- min(plot_data$tot_ae_adm)
-  x_max <- max(plot_data$tot_ae_adm)
+  x_min <- min(plot_data$tot_ae_adm, na.rm  = TRUE)
+  x_max <- max(plot_data$tot_ae_adm, na.rm  = TRUE)
   y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
   x_limit_extended <- x_max * 1.02
 
   # 3. Vectorized Mathematical Grid Generation
-  x_seq <- seq(x_min * 0.4, x_max * 1.05, length.out = 250)
+x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
+  x_seq <- seq(x_seq_min, x_max * 1.05, length.out = 250)
+  
   sorted_sigmas <- sort(unique(sigmas))
   logit_mu <- log(mu / (1 - mu))
 
@@ -448,16 +451,42 @@ funnel_plot <- function(
       )
   }
 
+# 1. Draw ONLY the half-sigma background lines (unlabeled, completely unbroken)
   p <- p +
     ggplot2::geom_line(
-      data = funnel_lines,
-      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, alpha = z_val),
-      color = "grey50", linetype = "dashed", inherit.aes = FALSE
+      data = dplyr::filter(funnel_lines, z_val %% 1 != 0), 
+      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
+      alpha = 0.5, color = "grey50", linetype = "dashed", inherit.aes = FALSE
     ) +
     ggplot2::scale_alpha_continuous(range = c(0.6, 0.15), guide = "none") +
-    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
+    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5)
 
-    ggplot2::annotate(
+  # 2. Draw full-sigma lines cleanly with stable native text positioning
+  if (requireNamespace("geomtextpath", quietly = TRUE)) {
+    p <- p +
+      geomtextpath::geom_textline(
+        data = dplyr::filter(funnel_lines, z_val %% 1 == 0), 
+        ggplot2::aes(
+          x = tot_ae_adm, 
+          y = upper, 
+          group = sigma, 
+          label = paste0(z_val, " SD")    # Keeps the text baseline intact
+        ),
+        color = "grey50", 
+        linetype = "dashed",
+        size = base * 0.75 / 2.83464, 
+        linewidth = 0.5, 
+        alpha = 0.5,
+        
+        # --- Native fixes ---
+        vjust = 0.5,                      # Perfectly centered vertically inside the line gap
+        hjust = 0.92,                     # Pushes the label to 92% of the way down the unbroken line
+        
+        inherit.aes = FALSE
+      )
+  }
+  
+    p <- p + ggplot2::annotate(
       "text", x = x_max, y = mu, colour = "steelblue",
       label = paste0("National average\n(", rate_labeller(mu), ")"),
       hjust = 1.05, vjust = 0.5, size = base * 0.8 / 2.83464, fontface = "italic"
@@ -520,14 +549,25 @@ funnel_plot <- function(
       legend.text = element_text(size = base * 0.8)
     )
 
-  if (log_x) {
-    p <- p + scale_x_log10(labels = scales::comma) +
-      ggplot2::coord_cartesian(xlim = c(max(10, x_min * 0.5), x_limit_extended), ylim = c(0, y_limit), clip = "on")
+if (log_x) {
+    p <- p + 
+      ggplot2::scale_x_log10(
+        labels = scales::comma, 
+        limits = c(x_min * 0.85, x_limit_extended),
+        expand = c(0, 0)
+      ) +
+      ggplot2::scale_y_continuous(
+        limits = c(0, y_limit), 
+        labels = \(x) str_c(1000 * x, " ‰"),
+        expand = c(0, 0)
+      )
+      # Removes coord_cartesian completely for log to stop the finite layout errors
   } else {
-    p <- p + scale_x_continuous(labels = scales::comma) +
+    p <- p + 
+      ggplot2::scale_x_continuous(labels = scales::comma) +
+      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰")) +
       ggplot2::coord_cartesian(xlim = c(x_min, x_limit_extended), ylim = c(0, y_limit), clip = "on")
   }
-
   return(p)
 }
 

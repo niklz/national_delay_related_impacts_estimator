@@ -33,7 +33,16 @@ server <- function(input, output, session) {
         opts_hover(css = "opacity:1.0; stroke-width:3px;"),
         opts_tooltip(css = tooltip_css),
         opts_hover_inv(css = "opacity:0.1;"),
-        opts_toolbar(saveaspng = FALSE),
+        opts_toolbar(
+          hidden = c(
+            'lasso_select',
+            'lasso_deselect',
+            'zoom_onoff',
+            'zoom_rect',
+            'zoom_reset',
+            'fullscreen'
+          )
+        ),
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),
@@ -57,7 +66,16 @@ server <- function(input, output, session) {
         opts_hover(css = "stroke-width:1.5px; stroke:white;"),
         opts_hover_inv(css = "opacity:0.2;"),
         opts_tooltip(css = tooltip_css),
-        opts_toolbar(saveaspng = FALSE),
+        opts_toolbar(
+          hidden = c(
+            'lasso_select',
+            'lasso_deselect',
+            'zoom_onoff',
+            'zoom_rect',
+            'zoom_reset',
+            'fullscreen'
+          )
+        ),
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),
@@ -131,7 +149,16 @@ server <- function(input, output, session) {
         opts_hover(css = "stroke-width:1.5px; stroke:white;"),
         opts_hover_inv(css = "opacity:0.2;"),
         opts_tooltip(css = tooltip_css),
-        opts_toolbar(saveaspng = FALSE),
+        opts_toolbar(
+          hidden = c(
+            'lasso_select',
+            'lasso_deselect',
+            'zoom_onoff',
+            'zoom_rect',
+            'zoom_reset',
+            'fullscreen'
+          )
+        ),
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE, width = 1)
       ),

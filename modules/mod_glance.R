@@ -112,31 +112,35 @@ glanceServer <- function(id) {
     output$perf_table <- renderFormattable({
       formattable(
         table_data,
-        align = c("l", "c", "c", "r", "c"), # Added 'c' for Trend column
+        align = c("l", "c", "c", "r", "c"),
         list(
-          # Bold entire "Total" row cells for text columns
+          # FIX: Add 'width' and 'display: inline-block' or block rules to force column size
           Trust = formatter(
             "span",
             style = x ~ style(
+              width = "20vw", # Explicitly cap the Trust width
+              display = "table-cell", # Ensures the width metric is respected
+              overflow = "hidden", # Defensive text management
+              text.overflow = "ellipsis", # Appends '...' if a trust name is insanely long
               font.weight = ifelse(x == "Total", "bold", "normal")
             )
           ),
-          # Region = formatter("span", style = function(x) {
-          #   style(
-          #     font.weight = ifelse(table_data$Trust == "Total", "bold", "normal"),
-          #     color = ifelse(table_data$Trust == "Total", "#475569", "#64748b") # Dim the region text slightly for hierarchy
-          #   )
-          # }),
 
-          # Clean Progress Bars with internal centering
-          `Total admissions` = custom_bar_formatter("#cbd5e1"),
-          `Number of DTA > 4 hours` = custom_bar_formatter("#cbd5e1"),
+          `Total admissions` = custom_bar_formatter(
+            "#cbd5e1",
+            col_width = "15vw"
+          ),
+          `Number of DTA > 4 hours` = custom_bar_formatter(
+            "#cbd5e1",
+            col_width = "15vw"
+          ),
 
-          # Fully styled Deaths column (Total row bolded)
           `Estimated delay related deaths` = formatter(
             "span",
             style = function(x) {
               style(
+                width = "20vw", # Give numbers a structured block size
+                display = "table_cell",
                 color = c("#0f172a", ifelse(x[-1] > 0, "#991b1b", "#166534")),
                 font.weight = "bold"
               )
@@ -144,16 +148,21 @@ glanceServer <- function(id) {
             x ~ comma(x, digits = 0)
           ),
 
-          # Color-coded Trends for immediate scannability
           Trend = formatter(
             "span",
             style = x ~ style(
+              width = "20vw", # Keep the trend column compact
+              display = "inline-block",
               color = case_when(
-                grepl("Decline", x) ~ "#166534", # Green for declining deaths
-                grepl("Growth|Increase", x) ~ "#991b1b", # Red for rising issues
-                TRUE ~ "#475569" # Neutral grey for stable
+                grepl("Decline", x) ~ "#166534",
+                grepl("Growth|Increase", x) ~ "#991b1b",
+                TRUE ~ "#475569"
               ),
-              font.weight = ifelse(table_data$Trust == "Total", "bold", "normal")
+              font.weight = ifelse(
+                table_data$Trust == "Total",
+                "bold",
+                "normal"
+              )
             )
           )
         )

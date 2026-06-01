@@ -637,7 +637,8 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 
 
 # Enhanced Progress Bar Formatter
-custom_bar_formatter <- function(color, track_color = "#f1f5f9") {
+# Enhanced Progress Bar Formatter with Column Width Support
+custom_bar_formatter <- function(color, track_color = "#f1f5f9", col_width = "20vw") {
   formatter("span", 
     style = function(x) {
       styles <- rep("", length(x))
@@ -647,20 +648,25 @@ custom_bar_formatter <- function(color, track_color = "#f1f5f9") {
       percentages <- round((x[-1] / max_val) * 100)
       
       # Apply a dual gradient: the progress color + a subtle track background color
+      # FIX: We change 'inline-block' to 'table-cell' and append your fluid width!
       styles[-1] <- sprintf(
         "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
-         display: inline-block; 
-         width: 100%%; 
+         display: table-cell; 
+         width: %s; 
          text-align: center; /* Centers text neatly inside the bar */
          color: #1e293b; /* Crisp dark grey text */
          font-weight: 500;
          border-radius: 4px; 
          padding: 2px 4px;", 
-        color, percentages, track_color, percentages
+        color, percentages, track_color, percentages, col_width
       )
       
-      # Style for the "Total" row (Row 1) - Bold and no background bar
-      styles[1] <- "font-weight: bold; color: #0f172a;"
+      # Style for the "Total" row (Row 1) - Bold, no background bar, but maintains width alignment
+      styles[1] <- sprintf(
+        "font-weight: bold; color: #0f172a; display: table-cell; width: %s;", 
+        col_width
+      )
+      
       styles
     },
     x ~ comma(x, digits = 0)

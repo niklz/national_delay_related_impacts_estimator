@@ -22,6 +22,8 @@ SPINNER_TYPE <- 8
 
 # Utils
 source("utils.R")
+# Source modules
+source("modules/mod_main.R")
 
 # Read data
 ae_impacts <- read_csv(

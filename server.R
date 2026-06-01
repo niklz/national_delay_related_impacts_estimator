@@ -85,8 +85,11 @@ server <- function(input, output, session) {
   })
 
   # 3. Funnel Plot Dropdown Dynamic Syncing
-  observe({
+ observe({
     req(target_month_trust())
+    
+    # 1. Capture the current selection without triggering a reactive loop
+    current_selection <- isolate(input$highlighted_trusts)
 
     available_trusts <- ae_impacts %>%
       filter(
@@ -100,9 +103,14 @@ server <- function(input, output, session) {
       unique() %>%
       sort()
 
+    # 2. Keep only the previously selected trusts that exist in the new date's data
+    valid_selection <- intersect(current_selection, available_trusts)
+
+    # 3. Update the widget preserving the valid selections
     shinyWidgets::updateVirtualSelect(
       "highlighted_trusts",
       choices = available_trusts,
+      selected = valid_selection,
       session = session
     )
   })

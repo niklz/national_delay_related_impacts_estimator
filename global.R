@@ -15,6 +15,7 @@ require(rmapshaper)
 require(ggrepel)
 library(geomtextpath)
 library(formattable)
+library(DT)
 
 # UI params
 PLOT_TITLE_WRAP <- 65

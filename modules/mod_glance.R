@@ -7,7 +7,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
     title = "At a glance", #
 
     layout_columns(
-      col_widths = c(4, 4, 4), # Keeps the consistent 3-column architecture
+      col_widths = c(6, 3, 3), # Keeps the consistent 3-column architecture
 
       # ==========================================
       # CARD 1: TRUST PERFORMANCE TABLE
@@ -20,9 +20,9 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 
           # Scrollable container for formattable widget
           div(
-            style = "overflow-x: auto; overflow-y: auto; max-height: 100%;",
+            style = "overflow-y: auto; max-height: 100%;",
             withSpinner(
-              formattableOutput(ns("perf_table")),
+              DTOutput(ns("perf_table")), # <-- Keep this as DTOutput
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -108,51 +108,35 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 
 glanceServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-    # 1. Dummy Data Generator for Performance Table
-    output$perf_table <- renderFormattable({
-      formattable(
+    output$perf_table <- renderDT({
+      req(table_data)
+
+      # 1. Keep your gorgeous, original formattable object exactly as it was
+      f_table <- formattable(
         table_data,
         align = c("l", "c", "c", "r", "c"),
         list(
-          # FIX: Add 'width' and 'display: inline-block' or block rules to force column size
           Trust = formatter(
             "span",
             style = x ~ style(
-              width = "20vw", # Explicitly cap the Trust width
-              display = "table-cell", # Ensures the width metric is respected
-              overflow = "hidden", # Defensive text management
-              text.overflow = "ellipsis", # Appends '...' if a trust name is insanely long
               font.weight = ifelse(x == "Total", "bold", "normal")
             )
           ),
-
-          `Total admissions` = custom_bar_formatter(
-            "#cbd5e1",
-            col_width = "15vw"
-          ),
-          `Number of DTA > 4 hours` = custom_bar_formatter(
-            "#cbd5e1",
-            col_width = "15vw"
-          ),
-
+          `Total admissions` = custom_bar_formatter("#cbd5e1"),
+          `Number of DTA > 4 hours` = custom_bar_formatter("#cbd5e1"),
           `Estimated delay related deaths` = formatter(
             "span",
             style = function(x) {
               style(
-                width = "20vw", # Give numbers a structured block size
-                display = "table_cell",
                 color = c("#0f172a", ifelse(x[-1] > 0, "#991b1b", "#166534")),
                 font.weight = "bold"
               )
             },
             x ~ comma(x, digits = 0)
           ),
-
           Trend = formatter(
             "span",
             style = x ~ style(
-              width = "20vw", # Keep the trend column compact
-              display = "inline-block",
               color = case_when(
                 grepl("Decline", x) ~ "#166534",
                 grepl("Growth|Increase", x) ~ "#991b1b",
@@ -164,6 +148,25 @@ glanceServer <- function(id) {
                 "normal"
               )
             )
+          )
+        )
+      )
+
+
+      as.datatable(
+        f_table,
+        filter = "top",
+        rownames = FALSE,
+        options = list(
+          dom = 'tf',
+          pageLength = -1,
+          autoWidth = FALSE,
+          columnDefs = list(
+            list(width = '34%', targets = 0), # Trust 
+            list(width = '19%', targets = 1), # Admissions 
+            list(width = '19%', targets = 2), # DTA 
+            list(width = '15%', targets = 3), # Deaths 
+            list(width = '13%', targets = 4) # Trend 
           )
         )
       )

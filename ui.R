@@ -38,12 +38,18 @@ ui <- page_navbar(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
   ),
 
-  # CRITICAL FIX: Use your module's UI function here!
-  # This automatically matches the dashboardServer("main") in server.R
+
+  glanceUI(id = "at_a_glance", 
+    min_date = min_date, 
+    max_date = max_date, 
+    SPINNER_TYPE = SPINNER_TYPE),
+
   dashboardUI(
     id = "main", 
     min_date = min_date, 
     max_date = max_date, 
     SPINNER_TYPE = SPINNER_TYPE
   )
+
+
 )

@@ -14,6 +14,7 @@ library(shinyWidgets)
 require(rmapshaper)
 require(ggrepel)
 library(geomtextpath)
+library(formattable)
 
 # UI params
 PLOT_TITLE_WRAP <- 65
@@ -24,6 +25,7 @@ SPINNER_TYPE <- 8
 source("utils.R")
 # Source modules
 source("modules/mod_main.R")
+source("modules/mod_glance.R")
 
 # Read data
 ae_impacts <- read_csv(
@@ -66,6 +68,7 @@ global_funnel_lines <- purrr::map_df(sigmas_global, function(z) {
   )
 })
 
+
 global_funnel_ribbons <- tibble()
 if (length(sigmas_global) >= 2) {
   stripe_indices <- seq(1, length(sigmas_global) - 1, by = 2)
@@ -88,3 +91,27 @@ if (length(sigmas_global) >= 2) {
     )
   })
 }
+
+# ==============================================================================
+# AT A GLANCE TABLE DATA
+# ==============================================================================
+
+table_data <- local({
+  processed_data <- ae_impacts %>%
+  filter(period == max(period)) %>%
+  select(
+    Trust = org,
+    # Region = parent_org,
+    `Total admissions` = tot_ae_adm,
+    `Number of DTA > 4 hours` = dta_gt4,
+    `Estimated delay related deaths` = excess_mort,
+    Trend = status_arrow
+  ) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 0)))
+
+total_row <- processed_data %>% filter(Trust == "Total")
+main_data  <- processed_data %>% filter(Trust != "Total") %>%
+arrange(desc(`Estimated delay related deaths`))
+
+bind_rows(total_row, main_data)
+})

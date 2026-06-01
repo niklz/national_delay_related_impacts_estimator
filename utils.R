@@ -634,3 +634,35 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
     )
   p
 }
+
+
+# Enhanced Progress Bar Formatter
+custom_bar_formatter <- function(color, track_color = "#f1f5f9") {
+  formatter("span", 
+    style = function(x) {
+      styles <- rep("", length(x))
+      
+      # Calculate percentages for rows 2 onwards
+      max_val <- max(x[-1], na.rm = TRUE)
+      percentages <- round((x[-1] / max_val) * 100)
+      
+      # Apply a dual gradient: the progress color + a subtle track background color
+      styles[-1] <- sprintf(
+        "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
+         display: inline-block; 
+         width: 100%%; 
+         text-align: center; /* Centers text neatly inside the bar */
+         color: #1e293b; /* Crisp dark grey text */
+         font-weight: 500;
+         border-radius: 4px; 
+         padding: 2px 4px;", 
+        color, percentages, track_color, percentages
+      )
+      
+      # Style for the "Total" row (Row 1) - Bold and no background bar
+      styles[1] <- "font-weight: bold; color: #0f172a;"
+      styles
+    },
+    x ~ comma(x, digits = 0)
+  )
+}

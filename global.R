@@ -106,6 +106,7 @@ table_data <- local({
     `Total admissions` = tot_ae_adm,
     `Number of DTA > 4 hours` = dta_gt4,
     `Estimated delay related deaths` = excess_mort,
+    `Percent change` = trend_velocity_pct,
     Trend = status_arrow
   ) %>%
   mutate(across(where(is.numeric), ~ round(.x, 0)))
@@ -116,3 +117,13 @@ arrange(desc(`Estimated delay related deaths`))
 
 bind_rows(total_row, main_data)
 })
+
+top_growers <- table_data %>% 
+  filter(Trend == "▲ Growth") %>% 
+  select(-`Total admissions`, -`Number of DTA > 4 hours`, -`Estimated delay related deaths`, -Trend) %>%
+  arrange(desc(`Percent change`))
+
+top_shrinkers <- table_data %>% 
+  filter(Trend == "▼ Decline") %>% 
+  select(-`Total admissions`, -`Number of DTA > 4 hours`, -`Estimated delay related deaths`, -Trend) %>%
+  arrange(`Percent change`)

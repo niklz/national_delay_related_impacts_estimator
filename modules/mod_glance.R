@@ -10,7 +10,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       col_widths = c(6, 3, 3), # Keeps the consistent 3-column architecture
 
       # ==========================================
-      # CARD 1: TRUST PERFORMANCE TABLE
+      # CARD 1: Overview table
       # ==========================================
       card(
         full_screen = TRUE,
@@ -22,7 +22,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             style = "overflow-y: auto; max-height: 100%;",
             withSpinner(
-              DTOutput(ns("perf_table")), # <-- Keep this as DTOutput
+              DTOutput(ns("overview_table")), 
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -32,11 +32,11 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       ),
 
       # ==========================================
-      # CARD 2: REGIONAL DELAY SUMMARY
+      # CARD 2: Top growers
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Regional Delay Statistics"),
+        card_header("Top growers"),
         card_body(
           style = "padding: 1rem;",
 
@@ -70,11 +70,11 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       ),
 
       # ==========================================
-      # CARD 3: RISK ASSESSMENT BENCHMARKS
+      # CARD 3:Top shrinkers
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Risk Assessment Benchmarks"),
+        card_header("Top shrinkers"),
         card_body(
           style = "padding: 1rem;",
 
@@ -108,7 +108,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 
 glanceServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-    output$perf_table <- renderDT({
+    output$overview_table <- renderDT({
       req(table_data)
 
       # 1. Keep your gorgeous, original formattable object exactly as it was
@@ -122,8 +122,8 @@ glanceServer <- function(id) {
               font.weight = ifelse(x == "Total", "bold", "normal")
             )
           ),
-          `Total admissions` = custom_bar_formatter("#cbd5e1"),
-          `Number of DTA > 4 hours` = custom_bar_formatter("#cbd5e1"),
+          `Total admissions` = custom_bar_formatter("#cbd5e1", has_total_row = TRUE),
+          `Number of DTA > 4 hours` = custom_bar_formatter("#cbd5e1", has_total_row = TRUE),
           `Estimated delay related deaths` = formatter(
             "span",
             style = function(x) {

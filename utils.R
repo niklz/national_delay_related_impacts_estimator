@@ -636,35 +636,50 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 }
 
 
-# Enhanced Progress Bar Formatter
-# Enhanced Progress Bar Formatter with Column Width Support
-custom_bar_formatter <- function(color, track_color = "#f1f5f9", col_width = "20vw") {
+#' Create a fluid-width dual-gradient progress bar
+#' @param color The hex code color for the active progress bar
+#' @param track_color The hex code color for the unfilled part of the bar
+#' @param col_width CSS width value (e.g., "20vw", "150px") to keep columns perfectly aligned
+#' @param has_total_row Logical. Set to TRUE if Row 1 is a "Total" summary row to skip its background bar.
+custom_bar_formatter <- function(color, track_color = "#f1f5f9", col_width = "20vw", has_total_row = FALSE) {
   formatter("span", 
     style = function(x) {
       styles <- rep("", length(x))
       
-      # Calculate percentages for rows 2 onwards
-      max_val <- max(x[-1], na.rm = TRUE)
-      percentages <- round((x[-1] / max_val) * 100)
+      if (has_total_row) {
+        # 1. CASE: Table HAS a Total row at Row 1
+        max_val <- max(x[-1], na.rm = TRUE)
+        if (is.na(max_val) || max_val == 0) max_val <- 1
+        
+        percentages <- round((x[-1] / max_val) * 100)
+        idx_to_paint <- seq_along(x)[-1] # Paint rows 2 to N
+        
+        # Style Row 1 as a clean, text-only bold summary row
+        styles[1] <- sprintf(
+          "font-weight: bold; color: #0f172a; display: table-cell; width: %s;", 
+          col_width
+        )
+        
+      } else {
+        # 2. CASE: Standard Table (No Total row, e.g., Top Growers Leaderboard)
+        max_val <- max(x, na.rm = TRUE)
+        if (is.na(max_val) || max_val == 0) max_val <- 1
+        
+        percentages <- round((x / max_val) * 100)
+        idx_to_paint <- seq_along(x) # Paint ALL rows (including Row 1 at 100%)
+      }
       
-      # Apply a dual gradient: the progress color + a subtle track background color
-      # FIX: We change 'inline-block' to 'table-cell' and append your fluid width!
-      styles[-1] <- sprintf(
+      # Apply the dual gradient and fluid width styling to the designated rows
+      styles[idx_to_paint] <- sprintf(
         "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
          display: table-cell; 
          width: %s; 
-         text-align: center; /* Centers text neatly inside the bar */
-         color: #1e293b; /* Crisp dark grey text */
+         text-align: center; 
+         color: #1e293b; 
          font-weight: 500;
          border-radius: 4px; 
          padding: 2px 4px;", 
         color, percentages, track_color, percentages, col_width
-      )
-      
-      # Style for the "Total" row (Row 1) - Bold, no background bar, but maintains width alignment
-      styles[1] <- sprintf(
-        "font-weight: bold; color: #0f172a; display: table-cell; width: %s;", 
-        col_width
       )
       
       styles

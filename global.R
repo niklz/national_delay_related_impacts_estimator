@@ -14,8 +14,6 @@ library(shinyWidgets)
 require(rmapshaper)
 require(ggrepel)
 library(geomtextpath)
-library(formattable)
-library(DT)
 library(reactable)
 library(htmltools)
 
@@ -102,31 +100,49 @@ if (length(sigmas_global) >= 2) {
 
 table_data <- local({
   processed_data <- ae_impacts %>%
-  filter(period == max(period)) %>%
-  select(
-    Trust = org,
-    # Region = parent_org,
-    `Total admissions` = tot_ae_adm,
-    `Number of DTA > 4 hours` = dta_gt4,
-    `Estimated DRD` = excess_mort,
-    `Percent change` = trend_velocity_pct,
-    Trend = status_arrow
-  ) %>%
-  mutate(across(where(is.numeric), ~ round(.x, 0)))
+    filter(period == max(period)) %>%
+    select(
+      Trust = org,
+      # Region = parent_org,
+      `Total admissions` = tot_ae_adm,
+      `Number of DTA > 4 hours` = dta_gt4,
+      `Estimated DRD` = excess_mort,
+      `Percent change` = trend_velocity_pct,
+      Trend = status_arrow
+    ) %>%
+    # FIX: Round the big volume metrics to whole numbers, but keep precision for the percentage!
+    mutate(
+      across(
+        c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated DRD`),
+        ~ round(.x, 0)
+      ),
+      `Percent change` = round(`Percent change`, 2)
+    )
 
-total_row <- processed_data %>% filter(Trust == "Total")
-main_data  <- processed_data %>% filter(Trust != "Total") %>%
-arrange(desc(`Estimated DRD`))
+  total_row <- processed_data %>% filter(Trust == "Total")
+  main_data <- processed_data %>%
+    filter(Trust != "Total") %>%
+    arrange(desc(`Estimated DRD`))
 
-bind_rows(total_row, main_data)
+  bind_rows(total_row, main_data)
 })
 
-top_growers <- table_data %>% 
-  filter(Trend == "▲ Growth") %>% 
-  select(-`Total admissions`, -`Number of DTA > 4 hours`, -`Estimated DRD`, -Trend) %>%
+top_growers <- table_data %>%
+  filter(Trend == "▲ Growth") %>%
+  select(
+    -`Total admissions`,
+    -`Number of DTA > 4 hours`,
+    -`Estimated DRD`,
+    -Trend
+  ) %>%
   arrange(desc(`Percent change`))
 
-top_shrinkers <- table_data %>% 
-  filter(Trend == "▼ Decline") %>% 
-  select(-`Total admissions`, -`Number of DTA > 4 hours`, -`Estimated DRD`, -Trend) %>%
+top_shrinkers <- table_data %>%
+  filter(Trend == "▼ Decline") %>%
+  select(
+    -`Total admissions`,
+    -`Number of DTA > 4 hours`,
+    -`Estimated DRD`,
+    -Trend
+  ) %>%
   arrange(`Percent change`)

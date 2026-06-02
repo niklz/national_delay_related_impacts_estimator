@@ -636,110 +636,39 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 }
 
 
-#' Create a fluid-width negative-safe progress bar that dynamically matches global alignment
-#' @param color The default hex code color for the active progress bar (if not dynamic)
-#' @param track_color The hex code color for the unfilled part of the bar
-#' @param col_width CSS width value (e.g., "20vw", "150px") to keep columns perfectly aligned
-#' @param has_total_row Logical. Set to TRUE if Row 1 is a "Total" summary row to skip its background bar.
-#' @param dynamic_color Logical. If TRUE, automatically colors positive rows light red and negative rows light green.
-#' @param digits Number of decimal places to display.
-#' @param suffix String to append to the numbers (e.g., "%").
-#' @param prefix_plus Logical. If TRUE, adds a "+" sign to positive numbers.
-#' @param align_vector The exact character vector passed to formattable's align argument (e.g., c("l", "c", "c", "r", "c"))
-#' @param column_name The name of the column this formatter is running on.
-custom_bar_formatter <- function(color = "#cbd5e1", track_color = "#f1f5f9", col_width = "20vw", 
-                                 has_total_row = FALSE, dynamic_color = FALSE, digits = 0, 
-                                 suffix = "", prefix_plus = FALSE, align_vector = NULL, column_name = NULL) {
-  formatter("span", 
-    style = function(x) {
-      styles <- rep("", length(x))
-      
-      # 1. DYNAMIC ALIGNMENT LOOKUP
-      # Map formattable's "l", "c", "r" shorthand letters to full CSS text-align rules
-      css_align <- "center" # Safe fallback default
-      if (!is.null(align_vector) && !is.null(column_name)) {
-        # Find the index position of our column in the dataset
-        col_idx <- which(names(table_data) == column_name)
-        if (length(col_idx) > 0) {
-          align_letter <- align_vector[col_idx]
-          css_align <- case_when(
-            align_letter == "l" ~ "left",
-            align_letter == "r" ~ "right",
-            TRUE                ~ "center"
-          )
-        }
-      }
-      
-      valid_v <- if (has_total_row) x[-1] else x
-      max_val <- max(abs(valid_v), na.rm = TRUE)
-      if (is.na(max_val) || max_val == 0) max_val <- 1
-      
-      if (has_total_row) {
-        percentages <- round((abs(x[-1]) / max_val) * 100)
-        idx_to_paint <- seq_along(x)[-1]
-        
-        # Style Row 1 using the dynamic inherited CSS alignment!
-        styles[1] <- sprintf(
-          "font-weight: bold; color: #0f172a; display: table-cell; width: %s; text-align: %s;", 
-          col_width, css_align
-        )
-      } else {
-        percentages <- round((abs(x) / max_val) * 100)
-        idx_to_paint <- seq_along(x)
-      }
-      
-      bar_colors <- if (dynamic_color) {
-        ifelse(x[idx_to_paint] >= 0, "#fee2e2", "#dcfce7")
-      } else {
-        rep(color, length(idx_to_paint))
-      }
-      
-      for (i in seq_along(idx_to_paint)) {
-        target_idx <- idx_to_paint[i]
-        pct <- percentages[i]
-        b_color <- bar_colors[i]
-        
-        # Progress bars also utilize the inherited global alignment rule cleanly
-        styles[target_idx] <- sprintf(
-          "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
-           display: table-cell; 
-           width: %s; 
-           text-align: %s; 
-           color: #1e293b; 
-           font-weight: 500;
-           border-radius: 4px; 
-           padding: 2px 4px;", 
-          b_color, pct, track_color, pct, col_width, css_align
-        )
-      }
-      
-      styles
-    },
-    x ~ {
-      formatted_num <- comma(x, digits = digits)
-      if (prefix_plus) {
-        ifelse(x >= 0, sprintf("+%s%s", formatted_num, suffix), sprintf("%s%s", formatted_num, suffix))
-      } else {
-        sprintf("%s%s", formatted_num, suffix)
-      }
-    }
-  )
+#' Create a reusable percent bar formatter for reactable side cards
+#' Now scales using 2-decimal precision for softer, accurate rounding
+reactable_percent_bar_formatter <- function(max_val) {
+  function(value, index, name) {
+    if (value == "Total") return(value)
+    
+    # Retain accurate precision bounds for the visual width scaling
+    pct <- min(round((abs(value) / max_val) * 100, 1), 100)
+    bar_color <- if (value > 0) "#fed7aa" else "#bbf7d0" # Soft orange vs soft green
+    
+    tags$div(
+      style = list(
+        background = sprintf("linear-gradient(90deg, %s %f%%, #f1f5f9 %f%%)", bar_color, pct, pct),
+        color = "#1e293b",
+        fontWeight = 500,
+        borderRadius = "4px",
+        padding = "2px 4px",
+        width = "100%",
+        textAlign = "center"
+      ),
+      # Fix: Display to 2 decimal places to prevent harsh rounding collisions
+      paste0(sprintf("%.1f", value), "%")
+    )
+  }
 }
 
-
-#' Create a reusable fluid-width progress bar for reactable
-#' @param max_val The maximum value in the column used to calculate the bar's width percentage
-#' @param color Hex code for the active progress bar fill
-#' @param track_color Hex code for the unfilled part of the bar
 reactable_bar_formatter <- function(max_val, color = "#cbd5e1", track_color = "#f1f5f9") {
-  # We return a function matching reactable's expected cell signature
   function(value, index, name) {
-    # Match our logic: Skip the bar graphic entirely on the summary row
     if (table_data$Trust[index] == "Total") {
-      return(comma(value, digits = 0))
+      # FIX: Swap digits = 0 for accuracy = 1
+      return(comma(value, accuracy = 1))
     }
     
-    # Calculate percentage based on the passed column maximum
     pct <- min(round((abs(value) / max_val) * 100), 100)
     
     tags$div(
@@ -752,27 +681,15 @@ reactable_bar_formatter <- function(max_val, color = "#cbd5e1", track_color = "#
         width = "100%",
         textAlign = "center"
       ),
-      comma(value, digits = 0)
+      comma(value, accuracy = 1) # FIX: Here as well
     )
   }
 }
 
-#' Create a reusable conditional text color formatter for reactable
-#' @param positive_color Hex color for numbers > 0
-#' @param negative_color Hex color for numbers <= 0
-#' @param total_color Hex color specifically for the summary total row text
 reactable_text_formatter <- function(positive_color = "#991b1b", negative_color = "#166534", total_color = "#0f172a") {
   function(value, index, name) {
     is_total <- table_data$Trust[index] == "Total"
-    
-    # Choose color based on row and mathematical value
-    text_color <- if (is_total) {
-      total_color
-    } else if (value > 0) {
-      positive_color
-    } else {
-      negative_color
-    }
+    text_color <- if (is_total) total_color else if (value > 0) positive_color else negative_color
     
     tags$span(
       style = list(
@@ -781,7 +698,7 @@ reactable_text_formatter <- function(positive_color = "#991b1b", negative_color 
         display = "block",
         textAlign = "center"
       ),
-      comma(value, digits = 0)
+      comma(value, accuracy = 1) # FIX: Swap digits = 0 for accuracy = 1
     )
   }
 }

@@ -636,54 +636,92 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 }
 
 
-#' Create a fluid-width dual-gradient progress bar
-#' @param color The hex code color for the active progress bar
+#' Create a fluid-width negative-safe progress bar that dynamically matches global alignment
+#' @param color The default hex code color for the active progress bar (if not dynamic)
 #' @param track_color The hex code color for the unfilled part of the bar
 #' @param col_width CSS width value (e.g., "20vw", "150px") to keep columns perfectly aligned
 #' @param has_total_row Logical. Set to TRUE if Row 1 is a "Total" summary row to skip its background bar.
-custom_bar_formatter <- function(color, track_color = "#f1f5f9", col_width = "20vw", has_total_row = FALSE) {
+#' @param dynamic_color Logical. If TRUE, automatically colors positive rows light red and negative rows light green.
+#' @param digits Number of decimal places to display.
+#' @param suffix String to append to the numbers (e.g., "%").
+#' @param prefix_plus Logical. If TRUE, adds a "+" sign to positive numbers.
+#' @param align_vector The exact character vector passed to formattable's align argument (e.g., c("l", "c", "c", "r", "c"))
+#' @param column_name The name of the column this formatter is running on.
+custom_bar_formatter <- function(color = "#cbd5e1", track_color = "#f1f5f9", col_width = "20vw", 
+                                 has_total_row = FALSE, dynamic_color = FALSE, digits = 0, 
+                                 suffix = "", prefix_plus = FALSE, align_vector = NULL, column_name = NULL) {
   formatter("span", 
     style = function(x) {
       styles <- rep("", length(x))
       
-      if (has_total_row) {
-        # 1. CASE: Table HAS a Total row at Row 1
-        max_val <- max(x[-1], na.rm = TRUE)
-        if (is.na(max_val) || max_val == 0) max_val <- 1
-        
-        percentages <- round((x[-1] / max_val) * 100)
-        idx_to_paint <- seq_along(x)[-1] # Paint rows 2 to N
-        
-        # Style Row 1 as a clean, text-only bold summary row
-        styles[1] <- sprintf(
-          "font-weight: bold; color: #0f172a; display: table-cell; width: %s;", 
-          col_width
-        )
-        
-      } else {
-        # 2. CASE: Standard Table (No Total row, e.g., Top Growers Leaderboard)
-        max_val <- max(x, na.rm = TRUE)
-        if (is.na(max_val) || max_val == 0) max_val <- 1
-        
-        percentages <- round((x / max_val) * 100)
-        idx_to_paint <- seq_along(x) # Paint ALL rows (including Row 1 at 100%)
+      # 1. DYNAMIC ALIGNMENT LOOKUP
+      # Map formattable's "l", "c", "r" shorthand letters to full CSS text-align rules
+      css_align <- "center" # Safe fallback default
+      if (!is.null(align_vector) && !is.null(column_name)) {
+        # Find the index position of our column in the dataset
+        col_idx <- which(names(table_data) == column_name)
+        if (length(col_idx) > 0) {
+          align_letter <- align_vector[col_idx]
+          css_align <- case_when(
+            align_letter == "l" ~ "left",
+            align_letter == "r" ~ "right",
+            TRUE                ~ "center"
+          )
+        }
       }
       
-      # Apply the dual gradient and fluid width styling to the designated rows
-      styles[idx_to_paint] <- sprintf(
-        "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
-         display: table-cell; 
-         width: %s; 
-         text-align: center; 
-         color: #1e293b; 
-         font-weight: 500;
-         border-radius: 4px; 
-         padding: 2px 4px;", 
-        color, percentages, track_color, percentages, col_width
-      )
+      valid_v <- if (has_total_row) x[-1] else x
+      max_val <- max(abs(valid_v), na.rm = TRUE)
+      if (is.na(max_val) || max_val == 0) max_val <- 1
+      
+      if (has_total_row) {
+        percentages <- round((abs(x[-1]) / max_val) * 100)
+        idx_to_paint <- seq_along(x)[-1]
+        
+        # Style Row 1 using the dynamic inherited CSS alignment!
+        styles[1] <- sprintf(
+          "font-weight: bold; color: #0f172a; display: table-cell; width: %s; text-align: %s;", 
+          col_width, css_align
+        )
+      } else {
+        percentages <- round((abs(x) / max_val) * 100)
+        idx_to_paint <- seq_along(x)
+      }
+      
+      bar_colors <- if (dynamic_color) {
+        ifelse(x[idx_to_paint] >= 0, "#fee2e2", "#dcfce7")
+      } else {
+        rep(color, length(idx_to_paint))
+      }
+      
+      for (i in seq_along(idx_to_paint)) {
+        target_idx <- idx_to_paint[i]
+        pct <- percentages[i]
+        b_color <- bar_colors[i]
+        
+        # Progress bars also utilize the inherited global alignment rule cleanly
+        styles[target_idx] <- sprintf(
+          "background: linear-gradient(90deg, %s %d%%, %s %d%%); 
+           display: table-cell; 
+           width: %s; 
+           text-align: %s; 
+           color: #1e293b; 
+           font-weight: 500;
+           border-radius: 4px; 
+           padding: 2px 4px;", 
+          b_color, pct, track_color, pct, col_width, css_align
+        )
+      }
       
       styles
     },
-    x ~ comma(x, digits = 0)
+    x ~ {
+      formatted_num <- comma(x, digits = digits)
+      if (prefix_plus) {
+        ifelse(x >= 0, sprintf("+%s%s", formatted_num, suffix), sprintf("%s%s", formatted_num, suffix))
+      } else {
+        sprintf("%s%s", formatted_num, suffix)
+      }
+    }
   )
 }

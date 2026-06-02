@@ -36,7 +36,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top growers"),
+        card_header("Top growers (past 3 months)"),
         card_body(
           style = "padding: 1rem;",
 
@@ -57,7 +57,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top shrinkers"),
+        card_header("Top shrinkers (past 3 months)"),
         card_body(
           style = "padding: 1rem;",
 
@@ -82,9 +82,11 @@ glanceServer <- function(id) {
     output$overview_table <- renderDT({
       req(table_data)
 
+      global_align <- c("l", "c", "c", "c", "c")
+
       f_table <- formattable(
         select(table_data, -`Percent change`),
-        align = c("l", "c", "c", "r", "c"),
+        align = global_align,
         list(
           Trust = formatter(
             "span",
@@ -94,18 +96,24 @@ glanceServer <- function(id) {
           ),
           `Total admissions` = custom_bar_formatter(
             "#cbd5e1",
-            has_total_row = TRUE
+            has_total_row = TRUE,
+            dynamic_color = FALSE
           ),
           `Number of DTA > 4 hours` = custom_bar_formatter(
             "#cbd5e1",
-            has_total_row = TRUE
+            has_total_row = TRUE,
+            dynamic_color = FALSE
           ),
-          `Estimated delay related deaths` = formatter(
+          `Estimated DRD` = formatter(
             "span",
             style = function(x) {
               style(
-                color = c("#0f172a", ifelse(x[-1] > 0, "#991b1b", "#166534")),
-                font.weight = "bold"
+                color = ifelse(table_data$Trust == "Total", "#0f172a", 
+                               ifelse(x > 0, "#991b1b", "#166534")),
+                font.weight = "bold",
+                # --- FIX A: FORCE CSS ALIGNMENT WITHIN THE SPAN ---
+                display = "block",
+                text_align = "center"
               )
             },
             x ~ comma(x, digits = 0)
@@ -140,15 +148,31 @@ glanceServer <- function(id) {
             list(width = '34%', targets = 0), # Trust
             list(width = '19%', targets = 1), # Admissions
             list(width = '19%', targets = 2), # DTA
-            list(width = '15%', targets = 3), # Deaths
-            list(width = '13%', targets = 4) # Trend
+            list(width = '8%', targets = 3), # Deaths
+            list(width = '20%', targets = 4), # Trend
+            # --- FIX B: FORCE DT CELL CLASSES TO CENTER TARGET 3 ---
+            list(className = 'dt-center', targets = c(1, 2, 3, 4)),
+            list(
+          targets = c(2, 3, 4), # Target all numeric formatted columns
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  if (type === 'sort' || type === 'type' || type === 'filter') {",
+            "    // Strip HTML tags and remove commas/symbols to extract pure numbers",
+            "    var clean = data.replace(/<[^>]*>/g, '').replace(/[^0-9.-]/g, '');",
+            "    return parseFloat(clean) || 0;",
+            "  }",
+            "  return data;",
+            "}"
           )
+          )
+        )
         )
       )
     })
 
 
     output$top_growers <- renderDT({
+      global_align <- rep("l", ncol(top_growers))
       f_table <- formattable(
         top_growers, # 1. First argument must be the data frame explicitly
         align = rep("l", ncol(top_growers)), # Dynamically matches alignment to your column count
@@ -162,7 +186,7 @@ glanceServer <- function(id) {
           ),
 
           # Clean Progress Bars with internal centering
-          `Percent change` = custom_bar_formatter("#cbd5e1")
+          `Percent change` = custom_bar_formatter("#cbd5e1", suffix = "%", dynamic_color = TRUE)
         )
       )
 
@@ -184,6 +208,7 @@ glanceServer <- function(id) {
 
     # 3. Dummy Risk Assessment Table
     output$top_shrinkers <- renderDT({
+      global_align <- rep("l", ncol(top_shrinkers))
       f_table <- formattable(
         top_shrinkers, # 1. First argument must be the data frame explicitly
         align = rep("l", ncol(top_shrinkers)), # Dynamically matches alignment to your column count
@@ -197,7 +222,7 @@ glanceServer <- function(id) {
           ),
 
           # Clean Progress Bars with internal centering
-          `Percent change` = custom_bar_formatter("#cbd5e1")
+          `Percent change` = custom_bar_formatter("#cbd5e1", suffix = "%", dynamic_color = TRUE)
         )
       )
 

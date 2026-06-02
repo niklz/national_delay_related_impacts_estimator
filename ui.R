@@ -7,8 +7,8 @@ ui <- page_navbar(
   ),
 
   header = tags$p(
-    style = "margin: 0; padding-top: 0.25rem; font-size: 18px; color: #555; max-width: 1080px; line-height: 1.4;",
-    "This dashboard displays estimated excess deaths associated with prolonged waits for A&E admission, ",
+    style = "margin: 0; padding-top: 0.25rem; font-size: 18px; color: #555; line-height: 1.4;",
+    "This dashboard displays estimated excess deaths related with prolonged waits for A&E admission (delay-related deaths - DRD), ",
     "applying the risk associations established in ",
     tags$a(
       href = "https://doi.org/10.1136/emermed-2025-214983",

@@ -725,3 +725,63 @@ custom_bar_formatter <- function(color = "#cbd5e1", track_color = "#f1f5f9", col
     }
   )
 }
+
+
+#' Create a reusable fluid-width progress bar for reactable
+#' @param max_val The maximum value in the column used to calculate the bar's width percentage
+#' @param color Hex code for the active progress bar fill
+#' @param track_color Hex code for the unfilled part of the bar
+reactable_bar_formatter <- function(max_val, color = "#cbd5e1", track_color = "#f1f5f9") {
+  # We return a function matching reactable's expected cell signature
+  function(value, index, name) {
+    # Match our logic: Skip the bar graphic entirely on the summary row
+    if (table_data$Trust[index] == "Total") {
+      return(comma(value, digits = 0))
+    }
+    
+    # Calculate percentage based on the passed column maximum
+    pct <- min(round((abs(value) / max_val) * 100), 100)
+    
+    tags$div(
+      style = list(
+        background = sprintf("linear-gradient(90deg, %s %d%%, %s %d%%)", color, pct, track_color, pct),
+        color = "#1e293b",
+        fontWeight = 500,
+        borderRadius = "4px",
+        padding = "2px 4px",
+        width = "100%",
+        textAlign = "center"
+      ),
+      comma(value, digits = 0)
+    )
+  }
+}
+
+#' Create a reusable conditional text color formatter for reactable
+#' @param positive_color Hex color for numbers > 0
+#' @param negative_color Hex color for numbers <= 0
+#' @param total_color Hex color specifically for the summary total row text
+reactable_text_formatter <- function(positive_color = "#991b1b", negative_color = "#166534", total_color = "#0f172a") {
+  function(value, index, name) {
+    is_total <- table_data$Trust[index] == "Total"
+    
+    # Choose color based on row and mathematical value
+    text_color <- if (is_total) {
+      total_color
+    } else if (value > 0) {
+      positive_color
+    } else {
+      negative_color
+    }
+    
+    tags$span(
+      style = list(
+        color = text_color, 
+        fontWeight = "bold",
+        display = "block",
+        textAlign = "center"
+      ),
+      comma(value, digits = 0)
+    )
+  }
+}

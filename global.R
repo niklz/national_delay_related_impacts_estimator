@@ -16,6 +16,9 @@ require(ggrepel)
 library(geomtextpath)
 library(formattable)
 library(DT)
+library(reactable)
+library(htmltools)
+
 
 # UI params
 PLOT_TITLE_WRAP <- 65

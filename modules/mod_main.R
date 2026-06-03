@@ -335,5 +335,11 @@ dashboardServer <- function(id, shared_data) {
         height_svg = 5.0
       )
     })
+    # ==========================================================================
+    # PERF FIX: Force background rendering on startup
+    # ==========================================================================
+    outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
+    outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
+    outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
   })
 }

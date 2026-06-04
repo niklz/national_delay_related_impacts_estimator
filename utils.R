@@ -237,6 +237,8 @@ funnel_plot <- function(
 }
 
 time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
+  
+  # Fast Vectorized Pipeline
   plot_data <- data %>%
     filter(parent_org != "Total") %>%
     mutate(
@@ -251,23 +253,13 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     ) %>%
     mutate(
       rate = excess_mort / tot_ae_adm,
-      denom = sapply(rate, round_denom, round = 10),
-      rate_bin = str_c("1 in ", denom),
-      bin_numeric = 1 / as.numeric(str_extract(rate_bin, "\\d+")),
+      # FIX: Purely vectorized instead of slow sapply loop
+      denom = ifelse(is.na(rate) | rate == 0, 0, round((1 / rate) / 10) * 10),
       precise_denom = round(1 / rate),
-      .by = c(period, parent_org)
-    ) %>%
-    mutate(
       tooltip_text = paste0(
-        parent_org,
-        ", ",
-        format(period, "%Y %B"),
-        "\n",
-        scales::comma(round(excess_mort)),
-        " delay-related deaths",
-        "\nRate: 1 in ",
-        precise_denom,
-        " admissions"
+        parent_org, ", ", format(period, "%Y %B"), "\n",
+        scales::comma(round(excess_mort)), " delay-related deaths\n",
+        "Rate: 1 in ", precise_denom, " admissions"
       )
     )
 
@@ -275,94 +267,61 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
 
   ts_plot <- ggplot(
     plot_data,
-    aes(
-      x = period,
-      y = rate * 1000,
-      col = parent_org,
-      group = parent_org,
-      data_id = parent_org
-    )
+    aes(x = period, y = rate * 1000, col = parent_org, group = parent_org, data_id = parent_org)
   ) +
     geom_line(linewidth = 2.5, col = "white") +
     geom_line_interactive(linewidth = 1.2) +
-    geom_point_interactive(
-      aes(tooltip = tooltip_text),
-      size = 2.5,
-      hover_nearest = TRUE
-    ) +
-    geom_text_repel_interactive(
+    geom_point_interactive(aes(tooltip = tooltip_text), size = 2.5, hover_nearest = TRUE) +
+    
+    # FIX: Native text offset layer is infinitely faster than heavy ggrepel simulation
+    geom_text_interactive(
       data = label_data,
       aes(label = parent_org, data_id = parent_org),
       hjust = 0,
-      nudge_x = 7.5,
-      direction = "y", 
-      segment.color = NA,
+      nudge_x = 8, 
       size = base * 0.85 / 2.83464,
       fontface = "bold"
     ) +
     scale_x_date(
       breaks = scales::breaks_pretty(n = 6),
-      minor_breaks = "1 month",
       expand = expansion(mult = c(0.02, 0.25)),
-      labels = function(x) {
-        ifelse(
-          lubridate::month(x) == 1,
-          format(x, "%Y"),
-          format(x, "%b")
-        )
-      }
+      labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%Y"), format(x, "%b"))
     ) +
     scale_y_continuous(labels = \(x) str_c(x, " ‰")) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
-    labs(
-      title = str_wrap(
-        "Delay-related deaths per region",
-        wrap
-      ),
-      x = NULL,
-      y = NULL
-    ) +
+    labs(title = str_wrap("Delay-related deaths per region", wrap), x = NULL, y = NULL) +
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
       plot.title = element_text(hjust = 0.5),
       plot.margin = margin(5, 5, 5, 5), 
-      axis.title = element_text(angle = 0, vjust = 1, hjust = 0, face = "bold"),
-      axis.text.x = element_text(size = base - 1, color = "#555555"),
       panel.grid.minor.x = element_line(color = "#e9ecef", linewidth = 0.5),
       panel.grid.major.x = element_line(color = "#ced4da", linewidth = 0.5)
     )
 
   ts_plot +
-    inset_element(
-      plot_region,
-      on_top = FALSE,
-      left = -0.05,
-      bottom = 0,
-      right = 0.9,
-      top = 1
-    )
+    inset_element(plot_region, on_top = FALSE, left = -0.05, bottom = 0, right = 0.9, top = 1)
 }
 
 
 funnel_plot <- function(
   data,
+  precomputed_lines = NULL,    # <-- NEW: Pass from global.R
+  precomputed_ribbons = NULL,  # <-- NEW: Pass from global.R
   base = 11,
   wrap = 40,
   log_x = FALSE,
   zebra = FALSE,
-  over_dispersion = 3,
-  sigmas = seq(0.5, 3.0, by = 0.5),
   selected_trusts = NULL 
 ) {
 
-  # 1. High-speed Vectorized Data Preparation (with strict log-safety filters)
+  # 1. High-speed Vectorized Data Preparation
   plot_data <- data %>%
     dplyr::filter(
       ae_type == "Type 1 (Major)", 
       org != "Total",
       !is.na(tot_ae_adm),
-      tot_ae_adm > 0,           # Safe-guard against log(0) / division errors
+      tot_ae_adm > 0,              
       !is.na(excess_mort)
     )
 
@@ -393,78 +352,48 @@ funnel_plot <- function(
       )
     )
 
-  # 2. Derive Coordinate Anchors (with absolute lower bound checks)
-  x_min <- max(1, min(plot_data$tot_ae_adm, na.rm = TRUE)) # Cannot be 0
+  # 2. Derive Coordinate Anchors
+  x_min <- max(1, min(plot_data$tot_ae_adm, na.rm = TRUE)) 
   x_max <- max(plot_data$tot_ae_adm, na.rm = TRUE)
   y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
   x_limit_extended <- x_max * 1.02
 
-  # 3. Vectorized Mathematical Grid Generation
-  x_seq_min <- if (log_x) x_min * 0.9 else x_min * 0.4
-  if (x_seq_min <= 1) x_seq_min <- 1 # Double-check safety floor
-  
-  x_seq <- seq(x_seq_min, x_max * 1.05, length.out = 250)
-  
-  sorted_sigmas <- sort(unique(sigmas))
-  logit_mu <- log(mu / (1 - mu))
+  # ============================================================================
+  # REMOVED: tidyr::crossing(), x_seq generation, and mathematical loop equations!
+  # ============================================================================
 
-  funnel_lines <- tidyr::crossing(
-    tot_ae_adm = x_seq,
-    z_val = sorted_sigmas
-  ) %>%
-    dplyr::mutate(
-      logit_se = sqrt(over_dispersion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu))),
-      upper = 1 / (1 + exp(-(logit_mu + z_val * logit_se))),
-      sigma = factor(z_val)
-    ) %>%
-    dplyr::filter(is.finite(upper)) %>% 
-    dplyr::arrange(sigma, tot_ae_adm)
-
-  funnel_ribbons <- tibble::tibble()
-  if (zebra && length(sorted_sigmas) >= 2) {
-    stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
-    logit_se_seq <- sqrt(over_dispersion) * sqrt(1 / (x_seq * mu * (1 - mu)))
-
-    funnel_ribbons <- lapply(stripe_indices, function(i) {
-      z_lower <- sorted_sigmas[i]
-      z_upper <- sorted_sigmas[i + 1]
-      tibble::tibble(
-        tot_ae_adm = x_seq,
-        ymin = pmin(1 / (1 + exp(-(logit_mu + z_lower * logit_se_seq))), y_limit),
-        ymax = pmin(1 / (1 + exp(-(logit_mu + z_upper * logit_se_seq))), y_limit),
-        group_id = factor(paste0(z_lower, "-", z_upper))
-      )
-    }) %>% dplyr::bind_rows() %>% dplyr::filter(is.finite(ymin), is.finite(ymax))
-  }
-
-  # 4. Canvas Assembly Pipeline
+  # 3. Canvas Assembly Pipeline
   base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
 
   p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
 
-  if (zebra && nrow(funnel_ribbons) > 0) {
+  # Use the pre-computed ribbons directly from global.R
+  if (zebra && !is.null(precomputed_ribbons) && nrow(precomputed_ribbons) > 0) {
     p <- p +
       ggplot2::geom_ribbon(
-        data = funnel_ribbons,
+        data = precomputed_ribbons,
         ggplot2::aes(x = tot_ae_adm, ymin = ymin, ymax = ymax, group = group_id),
         inherit.aes = FALSE, fill = "grey40", alpha = 0.05
       )
   }
 
-  # 1. Background lines (Half sigmas)
-  p <- p +
-    ggplot2::geom_line(
-      data = dplyr::filter(funnel_lines, z_val %% 1 != 0), 
-      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
-      color = "grey50", linetype = "dashed", alpha = 0.4, inherit.aes = FALSE
-    ) +
-    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5)
-
-  # 2. Textpath Lines (Full sigmas)
-  if (requireNamespace("geomtextpath", quietly = TRUE)) {
+  # 4. Background lines (Half sigmas) using pre-computed global data
+  if (!is.null(precomputed_lines)) {
     p <- p +
+      ggplot2::geom_line(
+        data = dplyr::filter(precomputed_lines, z_val %% 1 != 0), 
+        ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
+        color = "grey50", linetype = "dashed", alpha = 0.4, inherit.aes = FALSE
+      )
+  }
+  
+  p <- p + ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5)
+
+  # 5. Textpath Lines (Full sigmas) using pre-computed global data
+  if (requireNamespace("geomtextpath", quietly = TRUE) && !is.null(precomputed_lines)) {
+    p <- p + 
       geomtextpath::geom_textline(
-        data = dplyr::filter(funnel_lines, z_val %% 1 == 0), 
+        data = dplyr::filter(precomputed_lines, z_val %% 1 == 0), 
         ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma, label = paste0(z_val, "σ")),
         color = "grey50", linetype = "dashed", alpha = 0.4, textcolour = "black",
         size = base * 0.75 / 2.83464, linewidth = 0.5, 
@@ -503,12 +432,11 @@ funnel_plot <- function(
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
     ) +
     
-    # Isolated and stabilized fill step scale bounds
     ggplot2::scale_fill_stepsn(
       n.breaks = 5,
       colors = as.character(base_colors),
       labels = per_k_labeller,
-      limits = c(0, y_limit), # Stops scale_fill from scanning wild transformed log limits
+      limits = c(0, y_limit), 
       guide = ggplot2::guide_colorsteps(
         title.position = "top", even.steps = TRUE, show.limits = FALSE,
         barheight = unit(0.04, 'npc'), barwidth = unit(0.9, 'npc')
@@ -524,32 +452,15 @@ funnel_plot <- function(
       legend.text = element_text(size = base * 0.8)
     )
 
-  # 5. Tight, Clean Axis Constraints 
-  # Separate out configurations completely to avoid overlapping scales/limits warning errors
+  # 6. Axis Configurations
   if (log_x) {
     p <- p + 
-      ggplot2::scale_x_log10(
-        labels = scales::comma, 
-        limits = c(x_min * 0.85, x_limit_extended),
-        expand = c(0, 0)
-      ) +
-      ggplot2::scale_y_continuous(
-        limits = c(0, y_limit), 
-        labels = \(x) str_c(1000 * x, " ‰"),
-        expand = c(0, 0)
-      )
+      ggplot2::scale_x_log10(labels = scales::comma, limits = c(x_min * 0.85, x_limit_extended), expand = c(0, 0)) +
+      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰"), expand = c(0, 0))
   } else {
     p <- p + 
-      ggplot2::scale_x_continuous(
-        labels = scales::comma,
-        limits = c(x_min * 0.95, x_limit_extended),
-        expand = c(0, 0)
-      ) +
-      ggplot2::scale_y_continuous(
-        limits = c(0, y_limit), 
-        labels = \(x) str_c(1000 * x, " ‰"),
-        expand = c(0, 0)
-      )
+      ggplot2::scale_x_continuous(labels = scales::comma, limits = c(x_min * 0.95, x_limit_extended), expand = c(0, 0)) +
+      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰"), expand = c(0, 0))
   }
 
   return(p)

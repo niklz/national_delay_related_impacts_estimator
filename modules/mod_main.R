@@ -285,6 +285,8 @@ dashboardServer <- function(id, shared_data) {
 
       p_linear <- funnel_plot(
         filtered_funnel_data,
+        precomputed_lines = global_funnel_lines, # Grabbed from global scope
+        precomputed_ribbons = global_funnel_ribbons, # Grabbed from global scope
         BASE_FONT_SIZE,
         PLOT_TITLE_WRAP,
         log_x = FALSE,
@@ -292,6 +294,8 @@ dashboardServer <- function(id, shared_data) {
       )
       p_log <- funnel_plot(
         filtered_funnel_data,
+        precomputed_lines = global_funnel_lines, # Grabbed from global scope
+        precomputed_ribbons = global_funnel_ribbons, # Grabbed from global scope
         BASE_FONT_SIZE,
         PLOT_TITLE_WRAP,
         log_x = TRUE,

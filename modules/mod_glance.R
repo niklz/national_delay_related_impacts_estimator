@@ -34,7 +34,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top growers (past 3 months)"),
+        card_header("Top worsening (past 3 months)"),
         card_body(
           style = "padding: 1rem;",
           div(
@@ -54,7 +54,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top shrinkers (past 3 months)"),
+        card_header("Top improving (past 3 months)"),
         card_body(
           style = "padding: 1rem;",
           div(
@@ -68,8 +68,20 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           )
         )
       )
-    )
-  )
+    )#,
+  # # ==========================================================================
+  #   # PERFORMANCE TRIGGER: Signal when the browser finishes drawing these tables
+  #   # ==========================================================================
+  #   tags$script(HTML(sprintf("
+  #     $(document).one('shiny:idle', function(event) {
+  #       Shiny.setInputValue('%s', true);
+  #     });
+  #   ", ns("tables_rendered"))))
+  
+ )
+
+  
+
 }
 
 
@@ -82,7 +94,7 @@ glanceServer <- function(id) {
     output$overview_table <- renderReactable({
       req(table_data)
       
-      display_df <- select(table_data, -`Percent change`)
+      display_df <- select(table_data, -`Percent change (DRD)`)
       
       valid_rows <- display_df %>% filter(Trust != "Total")
       max_admissions <- max(valid_rows$`Total admissions`, na.rm = TRUE)
@@ -152,7 +164,7 @@ glanceServer <- function(id) {
       req(top_growers)
       
       # FIX: Jittering logic completely dropped. Using pristine upstream data.
-      max_pct <- max(abs(top_growers$`Percent change`), na.rm = TRUE)
+      max_pct <- max(abs(top_growers$`Percent change (DRD)`), na.rm = TRUE)
       
       reactable(
         top_growers,
@@ -171,7 +183,7 @@ glanceServer <- function(id) {
         
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change` = colDef(
+          `Percent change (DRD)` = colDef(
             name = "Percent change", 
             minWidth = 110, 
             headerStyle = list(
@@ -193,7 +205,7 @@ glanceServer <- function(id) {
       req(top_shrinkers)
       
       # FIX: Jittering logic completely dropped. Using pristine upstream data.
-      max_pct <- max(abs(top_shrinkers$`Percent change`), na.rm = TRUE)
+      max_pct <- max(abs(top_shrinkers$`Percent change (DRD)`), na.rm = TRUE)
       
       reactable(
         top_shrinkers,
@@ -212,7 +224,7 @@ glanceServer <- function(id) {
         
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change` = colDef(
+          `Percent change (DRD)` = colDef(
             name = "Percent change", 
             minWidth = 110, 
             headerStyle = list(
@@ -226,6 +238,12 @@ glanceServer <- function(id) {
         )
       )
     })
+  # # ==========================================================================
+  #   # Catch the browser signal and flip the global ready state
+  #   # ==========================================================================
+  #   observeEvent(input$tables_rendered, {
+  #     session$userData$landing_page_ready <- TRUE
+  #   }, once = TRUE) # Executes exactly once on startup
     
   })
 }

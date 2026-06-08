@@ -548,18 +548,57 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 
 
 #' Create a reusable percent bar formatter for reactable side cards
-#' Now scales using 2-decimal precision for softer, accurate rounding
-reactable_percent_bar_formatter <- function(max_val) {
-  function(value, index, name) {
-    if (value == "Total") return(value)
+#' Now safely handles environment context and disables background bars for Total rows.
+#' 
+#' @param max_val The maximum value used to scale the width of the background bar.
+#' @param df The dataframe context being evaluated (helps resolve Shiny module scoping issues).
+#' @param column_name The column to check for identifying row roles. Defaults to "Trust".
+#' @param bar_color Optional override for the visual bar background.
+reactable_percent_bar_formatter <- function(max_val, df, column_name = "Trust", bar_color = NULL) {
+  function(value, index) {
     
-    # Retain accurate precision bounds for the visual width scaling
+    # Handle NA and NaN cleanly
+    if (is.na(value) || is.nan(value)) {
+      return("-") 
+    }
+    
+    # Safely evaluate if this is the Total row based on the passed dataframe context
+    is_total_row <- df[[column_name]][index] == "Total"
+    
+    if (is_total_row) {
+      # If the value is a string "Total", return it as is. Otherwise format numeric total text.
+      display_text <- if (is.character(value) || value == "Total") value else paste0(sprintf("%.1f", value), "%")
+      
+      # Return a bold element with NO background bar gradient
+      return(
+        tags$div(
+          style = list(
+            color = "#1e293b",
+            fontWeight = "bold",
+            padding = "2px 4px",
+            width = "100%",
+            textAlign = "center"
+          ),
+          display_text
+        )
+      )
+    }
+    
+    # --- Standard Row Rendering (With Progress Bar) ---
     pct <- min(round((abs(value) / max_val) * 100, 1), 100)
-    bar_color <- if (value > 0) "#fed7aa" else "#bbf7d0" # Soft orange vs soft green
+    
+    # Color fallback logic
+    final_bar_color <- if (!is.null(bar_color)) {
+      bar_color
+    } else if (value > 0) {
+      "#fed7aa" # Soft orange
+    } else {
+      "#bbf7d0" # Soft green
+    }
     
     tags$div(
       style = list(
-        background = sprintf("linear-gradient(90deg, %s %f%%, #f1f5f9 %f%%)", bar_color, pct, pct),
+        background = sprintf("linear-gradient(90deg, %s %f%%, #f1f5f9 %f%%)", final_bar_color, pct, pct),
         color = "#1e293b",
         fontWeight = 500,
         borderRadius = "4px",
@@ -567,19 +606,46 @@ reactable_percent_bar_formatter <- function(max_val) {
         width = "100%",
         textAlign = "center"
       ),
-      # Fix: Display to 2 decimal places to prevent harsh rounding collisions
       paste0(sprintf("%.1f", value), "%")
     )
   }
 }
 
-reactable_bar_formatter <- function(max_val, color = "#cbd5e1", track_color = "#f1f5f9") {
-  function(value, index, name) {
-    if (table_data$Trust[index] == "Total") {
-      # FIX: Swap digits = 0 for accuracy = 1
-      return(comma(value, accuracy = 1))
+#' Create a reusable standard numeric bar formatter for reactable cards
+#' Migrated to use safe dataframe contextual matching for robust rendering inside modules.
+#' 
+#' @param max_val The maximum value used to scale the width of the background bar.
+#' @param df The dataframe context being evaluated (resolves Shiny module scoping issues).
+#' @param column_name The column to check for identifying row roles. Defaults to "Trust".
+#' @param color The hex code for the progress bar color.
+#' @param track_color The hex code for the empty background track color.
+reactable_bar_formatter <- function(max_val, df, column_name = "Trust", color = "#cbd5e1", track_color = "#f1f5f9") {
+  function(value, index) {
+    
+    # Handle NA and NaN cleanly
+    if (is.na(value) || is.nan(value)) {
+      return("-") 
     }
     
+    # FIX: Dynamically evaluate row lookups based on the passed df context instead of global table_data
+    is_total_row <- df[[column_name]][index] == "Total"
+    
+    if (is_total_row) {
+      return(
+        tags$div(
+          style = list(
+            color = "#1e293b",
+            fontWeight = "bold",
+            padding = "2px 4px",
+            width = "100%",
+            textAlign = "center"
+          ),
+          scales::comma(value, accuracy = 1)
+        )
+      )
+    }
+    
+    # --- Standard Row Rendering (With Progress Bar) ---
     pct <- min(round((abs(value) / max_val) * 100), 100)
     
     tags$div(
@@ -592,7 +658,7 @@ reactable_bar_formatter <- function(max_val, color = "#cbd5e1", track_color = "#
         width = "100%",
         textAlign = "center"
       ),
-      comma(value, accuracy = 1) # FIX: Here as well
+      scales::comma(value, accuracy = 1)
     )
   }
 }

@@ -150,8 +150,17 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 }
 
 # 2. Server Component
-dashboardServer <- function(id, shared_data) {
+dashboardServer <- function(id, shared_data, load_landing) {
   moduleServer(id, function(input, output, session) {
+
+    # pre load charts once landing page is rendered
+    observeEvent(load_landing(), {
+      req(load_landing() == TRUE)
+      outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
+      outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
+      outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
+    }, once = TRUE)
+
     tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
 
     target_month_cluster <- reactive({
@@ -339,11 +348,5 @@ dashboardServer <- function(id, shared_data) {
         height_svg = 5.0
       )
     })
-    # ==========================================================================
-    # PERF FIX: Force background rendering on startup
-    # ==========================================================================
-    outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
-    outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
-    outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
   })
 }

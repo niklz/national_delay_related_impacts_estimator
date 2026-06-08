@@ -7,20 +7,20 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
     title = "At a glance",
 
     layout_columns(
-      col_widths = c(6, 3, 3), 
+      col_widths = c(6, 3, 3),
 
       # ==========================================
       # CARD 1: Overview table (REACTABLE)
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Overview"),
+        card_header(stringr::str_c("Overview, ", format(report_date, "%B %y"))),
         card_body(
           style = "padding: 1rem;",
           div(
             style = "overflow-y: auto; max-height: 100%;",
             withSpinner(
-              reactableOutput(ns("overview_table")), 
+              reactableOutput(ns("overview_table")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -30,7 +30,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       ),
 
       # ==========================================
-      # CARD 2: Top growers (REACTABLE)
+      # CARD 2: Top worseners (REACTABLE)
       # ==========================================
       card(
         full_screen = TRUE,
@@ -40,7 +40,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             style = "overflow-y: auto; max-height: 100%;",
             withSpinner(
-              reactableOutput(ns("top_growers")), 
+              reactableOutput(ns("top_worsening")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -50,7 +50,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       ),
 
       # ==========================================
-      # CARD 3: Top shrinkers (REACTABLE)
+      # CARD 3: Top improvers (REACTABLE)
       # ==========================================
       card(
         full_screen = TRUE,
@@ -60,7 +60,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             style = "overflow-y: auto; max-height: 100%;",
             withSpinner(
-              reactableOutput(ns("top_shrinkers")), 
+              reactableOutput(ns("top_improving")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -68,20 +68,16 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           )
         )
       )
-    )#,
-  # # ==========================================================================
-  #   # PERFORMANCE TRIGGER: Signal when the browser finishes drawing these tables
-  #   # ==========================================================================
-  #   tags$script(HTML(sprintf("
-  #     $(document).one('shiny:idle', function(event) {
-  #       Shiny.setInputValue('%s', true);
-  #     });
-  #   ", ns("tables_rendered"))))
-  
- )
-
-  
-
+    ) #,
+    # # ==========================================================================
+    #   # PERFORMANCE TRIGGER: Signal when the browser finishes drawing these tables
+    #   # ==========================================================================
+    #   tags$script(HTML(sprintf("
+    #     $(document).one('shiny:idle', function(event) {
+    #       Shiny.setInputValue('%s', true);
+    #     });
+    #   ", ns("tables_rendered"))))
+  )
 }
 
 
@@ -93,13 +89,23 @@ glanceServer <- function(id) {
     # ==========================================================================
     output$overview_table <- renderReactable({
       req(table_data)
-      
-      display_df <- select(table_data, -`Percent change (DRD)`)
-      
+
+      display_df <- select(
+        table_data,
+        `Trust`,
+        `Total admissions`,
+        `Proportion DTA > 4 hours`,
+        `Estimated DRD`,
+        `Trend`
+      )
+
       valid_rows <- display_df %>% filter(Trust != "Total")
       max_admissions <- max(valid_rows$`Total admissions`, na.rm = TRUE)
-      max_dta        <- max(valid_rows$`Number of DTA > 4 hours`, na.rm = TRUE)
-      
+
+      clean_pcts <- valid_rows$`Proportion DTA > 4 hours`
+      clean_pcts <- clean_pcts[!is.na(clean_pcts) & !is.nan(clean_pcts)]
+      max_pct <- max(abs(clean_pcts), na.rm = TRUE)
+
       reactable(
         display_df,
         pagination = FALSE,
@@ -111,46 +117,73 @@ glanceServer <- function(id) {
 
         rowStyle = function(index) {
           if (display_df$Trust[index] == "Total") {
-            return(list(fontWeight = "bold", background = "#e2e8f0")) 
+            return(list(fontWeight = "bold", background = "#e2e8f0"))
           }
           if (index %% 2 == 0) {
-            return(list(background = "#f8fafc")) 
+            return(list(background = "#f8fafc"))
           }
           return(list(background = "#ffffff"))
         },
 
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 240),
-          
-          `Total admissions` = colDef(name = "Total admissions", minWidth = 130, cell = reactable_bar_formatter(max_admissions)),
-          `Number of DTA > 4 hours` = colDef(name = "Number of DTA > 4 hours", minWidth = 140, cell = reactable_bar_formatter(max_dta)),
-          
-          # FIX: Explicit line-height control and normal wrapping rules forces 
-          # phrases to stack vertically rather than clip words.
-          `Estimated DRD` = colDef(
-            name = "Estimated DRD", 
-            minWidth = 120, 
+
+          `Total admissions` = colDef(
+            name = "Total admissions",
+            minWidth = 130,
+            cell = reactable_bar_formatter(max_admissions, df = display_df)
+          ),
+
+          `Proportion DTA > 4 hours` = colDef(
+            name = "Proportion DTA > 4 hours",
+            minWidth = 110,
             headerStyle = list(
-              whiteSpace = "normal", 
-              wordBreak = "normal", 
+              whiteSpace = "normal",
+              wordBreak = "normal",
               lineHeight = "1.2",
               paddingBottom = "4px"
-            ), 
+            ),
+            # FIX: Passed display_df context here
+            cell = reactable_percent_bar_formatter(max_pct, df = display_df, bar_color = "#cbd5e1")
+          ),
+
+          `Estimated DRD` = colDef(
+            name = "Estimated DRD",
+            minWidth = 120,
+            headerStyle = list(
+              whiteSpace = "normal",
+              wordBreak = "normal",
+              lineHeight = "1.2",
+              paddingBottom = "4px"
+            ),
             cell = reactable_text_formatter()
           ),
-          
+
           Trend = colDef(
             name = "Trend",
             minWidth = 100,
-            headerStyle = list(whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2"),
+            headerStyle = list(
+              whiteSpace = "normal",
+              wordBreak = "normal",
+              lineHeight = "1.2"
+            ),
             cell = function(value, index) {
               is_total <- display_df$Trust[index] == "Total"
+
+              if (is.na(value)) return("-")
+
               text_color <- case_when(
                 grepl("Decline", value) ~ "#166534",
                 grepl("Growth|Increase", value) ~ "#991b1b",
                 TRUE ~ "#475569"
               )
-              tags$span(style = list(color = text_color, fontWeight = if (is_total) "bold" else "normal"), value)
+              tags$span(
+                style = list(
+                  color = text_color,
+                  fontWeight = if (is_total) "bold" else "normal"
+                ),
+                value
+              )
             }
           )
         )
@@ -160,39 +193,43 @@ glanceServer <- function(id) {
     # ==========================================================================
     # TOP GROWERS (Reactable Implementation)
     # ==========================================================================
-    output$top_growers <- renderReactable({
-      req(top_growers)
-      
-      # FIX: Jittering logic completely dropped. Using pristine upstream data.
-      max_pct <- max(abs(top_growers$`Percent change (DRD)`), na.rm = TRUE)
-      
+    output$top_worsening <- renderReactable({
+      req(top_worsening)
+
+      max_pct <- max(abs(top_worsening$`Percent change (DRD)`), na.rm = TRUE)
+
       reactable(
-        top_growers,
+        top_worsening,
         pagination = FALSE,
         filterable = TRUE,
         highlight = TRUE,
         defaultColDef = colDef(align = "center"),
         fullWidth = TRUE,
         style = list(width = "100%", overflowX = "hidden"),
-        
+
         rowStyle = function(index) {
-          if (top_growers$Trust[index] == "Total") return(list(fontWeight = "bold", background = "#e2e8f0"))
-          if (index %% 2 == 0) return(list(background = "#f8fafc"))
+          if (top_worsening$Trust[index] == "Total") {
+            return(list(fontWeight = "bold", background = "#e2e8f0"))
+          }
+          if (index %% 2 == 0) {
+            return(list(background = "#f8fafc"))
+          }
           return(list(background = "#ffffff"))
         },
-        
+
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Percent change", 
-            minWidth = 110, 
+            name = "Percent change",
+            minWidth = 110,
             headerStyle = list(
-              whiteSpace = "normal", 
-              wordBreak = "normal", 
+              whiteSpace = "normal",
+              wordBreak = "normal",
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            cell = reactable_percent_bar_formatter(max_pct)
+            # FIX: Passed top_worsening context here
+            cell = reactable_percent_bar_formatter(max_pct, df = top_worsening)
           )
         )
       )
@@ -201,49 +238,46 @@ glanceServer <- function(id) {
     # ==========================================================================
     # TOP SHRINKERS (Reactable Implementation)
     # ==========================================================================
-    output$top_shrinkers <- renderReactable({
-      req(top_shrinkers)
-      
-      # FIX: Jittering logic completely dropped. Using pristine upstream data.
-      max_pct <- max(abs(top_shrinkers$`Percent change (DRD)`), na.rm = TRUE)
-      
+    output$top_improving <- renderReactable({
+      req(top_improving)
+
+      max_pct <- max(abs(top_improving$`Percent change (DRD)`), na.rm = TRUE)
+
       reactable(
-        top_shrinkers,
+        top_improving,
         pagination = FALSE,
         filterable = TRUE,
         highlight = TRUE,
         defaultColDef = colDef(align = "center"),
         fullWidth = TRUE,
         style = list(width = "100%", overflowX = "hidden"),
-        
+
         rowStyle = function(index) {
-          if (top_shrinkers$Trust[index] == "Total") return(list(fontWeight = "bold", background = "#e2e8f0"))
-          if (index %% 2 == 0) return(list(background = "#f8fafc"))
+          if (top_improving$Trust[index] == "Total") {
+            return(list(fontWeight = "bold", background = "#e2e8f0"))
+          }
+          if (index %% 2 == 0) {
+            return(list(background = "#f8fafc"))
+          }
           return(list(background = "#ffffff"))
         },
-        
+
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Percent change", 
-            minWidth = 110, 
+            name = "Percent change",
+            minWidth = 110,
             headerStyle = list(
-              whiteSpace = "normal", 
-              wordBreak = "normal", 
+              whiteSpace = "normal",
+              wordBreak = "normal",
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            cell = reactable_percent_bar_formatter(max_pct)
+            # FIX: Passed top_improving context here
+            cell = reactable_percent_bar_formatter(max_pct, df = top_improving)
           )
         )
       )
     })
-  # # ==========================================================================
-  #   # Catch the browser signal and flip the global ready state
-  #   # ==========================================================================
-  #   observeEvent(input$tables_rendered, {
-  #     session$userData$landing_page_ready <- TRUE
-  #   }, once = TRUE) # Executes exactly once on startup
-    
   })
 }

@@ -33,6 +33,9 @@ source("modules/mod_glance.R")
 ae_impacts <- read_csv(
   "https://raw.githubusercontent.com/niklz/excess_impacts_national/refs/heads/main/data/ae_impacts.csv"
 )
+
+report_date <- ae_impacts$period %>% max()
+
 region_plot <- readRDS("data/region_plot.RDS")
 cluster_shp <- readRDS("data/cluster_shp_simple.RDS")
 
@@ -107,17 +110,19 @@ table_data <- local({
       `Total admissions` = tot_ae_adm,
       `Number of DTA > 4 hours` = dta_gt4,
       `Estimated DRD` = excess_mort,
-      `Percent change` = trend_velocity_pct,
+      `Percent change (DRD)` = trend_velocity_pct,
       Trend = status_arrow
     ) %>%
+    mutate(`Proportion DTA > 4 hours` = 100*(`Number of DTA > 4 hours`/`Total admissions`)) %>%
     # FIX: Round the big volume metrics to whole numbers, but keep precision for the percentage!
     mutate(
       across(
         c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated DRD`),
         ~ round(.x, 0)
       ),
-      `Percent change` = round(`Percent change`, 2)
-    )
+      across(
+      c(`Percent change (DRD)`, `Proportion DTA > 4 hours`),  ~ round(.x, 2)
+    ))
 
   total_row <- processed_data %>% filter(Trust == "Total")
   main_data <- processed_data %>%
@@ -127,22 +132,24 @@ table_data <- local({
   bind_rows(total_row, main_data)
 })
 
-top_growers <- table_data %>%
+top_worsening <- table_data %>%
   filter(Trend == "▲ Growth") %>%
   select(
     -`Total admissions`,
     -`Number of DTA > 4 hours`,
     -`Estimated DRD`,
+    -`Proportion DTA > 4 hours`,
     -Trend
   ) %>%
-  arrange(desc(`Percent change`))
+  arrange(desc(`Percent change (DRD)`))
 
-top_shrinkers <- table_data %>%
+top_improving <- table_data %>%
   filter(Trend == "▼ Decline") %>%
   select(
     -`Total admissions`,
     -`Number of DTA > 4 hours`,
     -`Estimated DRD`,
+    -`Proportion DTA > 4 hours`,
     -Trend
   ) %>%
-  arrange(`Percent change`)
+  arrange(`Percent change (DRD)`)

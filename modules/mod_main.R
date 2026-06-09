@@ -150,12 +150,12 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 }
 
 # 2. Server Component
-dashboardServer <- function(id, shared_data, load_landing) {
+dashboardServer <- function(id, max_date) {
   moduleServer(id, function(input, output, session) {
-
     # pre load charts once landing page is rendered
-    observeEvent(load_landing(), {
-      req(load_landing() == TRUE)
+# Run this locally when the main app finishes flushing its initial UI
+    session$onFlushed(function() {
+      print("Triggered background load successfully")
       outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
       outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
       outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
@@ -164,24 +164,33 @@ dashboardServer <- function(id, shared_data, load_landing) {
     tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
 
     target_month_cluster <- reactive({
-      req(input$cluster_date)
-      as.Date(input$cluster_date)
+      if (!is.null(input$cluster_date)) {
+        as.Date(input$cluster_date)
+      } else {
+        as.Date(max_date) # Fallback before tab is clicked
+      }
     })
 
     target_month_trust <- reactive({
-      req(input$trust_date)
-      as.Date(input$trust_date)
+      if (!is.null(input$trust_date)) {
+        as.Date(input$trust_date)
+      } else {
+        as.Date(max_date) # Fallback before tab is clicked
+      }
     })
 
     # 1. Time Series
     output$time_series_plot <- renderGirafe({
-      req(input$ts_date_slider)
+      print("time_series_plot is actively rendering")
+      slider_val <- if (!is.null(input$ts_date_slider)) {
+        input$ts_date_slider
+      } else {
+        # Fallback to the exact default matching your UI
+        c(max_date - months(6), max_date)
+      }
 
-      start_dt <- lubridate::floor_date(
-        as.Date(input$ts_date_slider[1]),
-        "month"
-      )
-      end_dt <- lubridate::floor_date(as.Date(input$ts_date_slider[2]), "month")
+      start_dt <- lubridate::floor_date(as.Date(slider_val[1]), "month")
+      end_dt <- lubridate::floor_date(as.Date(slider_val[2]), "month")
 
       filtered_ts_data <- ae_impacts %>%
         filter(period >= start_dt & period <= end_dt)
@@ -218,6 +227,7 @@ dashboardServer <- function(id, shared_data, load_landing) {
 
     # 2. Choropleth Map
     output$choropleth <- renderGirafe({
+      print("choropleth is actively rendering")
       filtered_map_data <- ae_impacts %>%
         filter(period == target_month_cluster())
       p <- choropleth_plot(
@@ -252,6 +262,8 @@ dashboardServer <- function(id, shared_data, load_landing) {
 
     # 3. Funnel Plot Dropdown Dynamic Syncing
     observe({
+      req(target_month_trust())
+      req(input$highlighted_trusts)
       req(target_month_trust())
 
       # 1. Capture the current selection without triggering a reactive loop
@@ -315,6 +327,7 @@ dashboardServer <- function(id, shared_data, load_landing) {
     })
 
     output$funnel_plot <- renderGirafe({
+      print("time_series_plot is actively rendering")
       req(funnel_cache())
 
       is_log <- !is.null(input$log_x) && isTRUE(input$log_x)

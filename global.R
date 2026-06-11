@@ -28,6 +28,7 @@ source("utils.R")
 # Source modules
 source("modules/mod_main.R")
 source("modules/mod_glance.R")
+source("modules/mod_deepdive.R")
 
 # Read data
 ae_impacts <- read_csv(
@@ -114,6 +115,11 @@ table_data <- local({
       Trend = status_arrow
     ) %>%
     mutate(`Proportion DTA > 4 hours` = 100*(`Number of DTA > 4 hours`/`Total admissions`)) %>%
+    mutate(`Estimated deaths per thousand admissions` = case_when(
+      (`Estimated DRD` != 0 & `Total admissions` != 0) ~ 1000*(`Estimated DRD`/`Total admissions`),
+      (`Estimated DRD` == 0 | `Total admissions` ==0) ~ 0,
+      .default = 0)
+    )%>%
     # FIX: Round the big volume metrics to whole numbers, but keep precision for the percentage!
     mutate(
       across(
@@ -127,7 +133,7 @@ table_data <- local({
   total_row <- processed_data %>% filter(Trust == "Total")
   main_data <- processed_data %>%
     filter(Trust != "Total") %>%
-    arrange(desc(`Estimated DRD`))
+    arrange(desc(`Estimated deaths per thousand admissions`))
 
   bind_rows(total_row, main_data)
 })

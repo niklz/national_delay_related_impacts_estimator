@@ -49,6 +49,11 @@ ui <- page_navbar(
     min_date = min_date, 
     max_date = max_date, 
     SPINNER_TYPE = SPINNER_TYPE
+  ),
+
+  deepDiveUI(
+    id = "deep_dive",
+    SPINNER_TYPE = SPINNER_TYPE
   )
 
 

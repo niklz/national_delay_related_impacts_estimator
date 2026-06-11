@@ -96,8 +96,11 @@ glanceServer <- function(id) {
         `Total admissions`,
         `Proportion DTA > 4 hours`,
         `Estimated DRD`,
+        `Estimated deaths per thousand admissions`,
         `Trend`
       )
+
+      # mutate(`Estimated deaths per thousand admissions (Estimated DRD)` = str_c(`Estimated deaths per thousand admissions`, "(", `Estimated DRD`, ")")) %>%
 
       valid_rows <- display_df %>% filter(Trust != "Total")
       max_admissions <- max(valid_rows$`Total admissions`, na.rm = TRUE)
@@ -147,8 +150,8 @@ glanceServer <- function(id) {
             cell = reactable_percent_bar_formatter(max_pct, df = display_df, bar_color = "#cbd5e1")
           ),
 
-          `Estimated DRD` = colDef(
-            name = "Estimated DRD",
+          `Estimated deaths per thousand admissions` = colDef(
+            name = "Estimated deaths per thousand admissions",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",

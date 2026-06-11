@@ -5,7 +5,7 @@ server <- function(input, output, session) {
   ae_impacts_long 
 })
 
-  glanceServer("at_a_glance")
-  dashboardServer("main", max_date = max_date)
-  deepDiveServer(id = "deep_dive", ts_data = historical_data_r)
+  # glanceServer("at_a_glance")
+  # dashboardServer("main", max_date = max_date)
+  deepDiveServer(id = "deep_dive", ts_data = historical_data_r, choices_list = geo_choices)
 }

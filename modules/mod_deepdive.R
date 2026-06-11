@@ -18,7 +18,7 @@ ns <- NS(id)
           selectInput(
             inputId = ns("geo_level"),
             label = "Select Grouping Level:",
-            choices = c("Region" = "region", "ICB" = "icb", "Trust" = "trust"),
+            choices = c("Region" = "region", "ICB / cluster" = "cluster", "Trust" = "trust"),
             selected = "trust"
           ),
           
@@ -60,60 +60,54 @@ ns <- NS(id)
 }
 
 
-deepDiveServer <- function(id, ts_data) {
+deepDiveServer <- function(id, ts_data, choices_list) {
   moduleServer(id, function(input, output, session) {
    ns <- session$ns
 
     # --------------------------------------------------------------------------
-    # 1. DYNAMIC SELECTIZE CHOICES
+    # 1. INSTANT SELECTIZE CHOICES (No data filtering!)
     # --------------------------------------------------------------------------
     observeEvent(input$geo_level, {
-      req(ts_data())
-      
-      filtered_choices <- ts_data() %>%
-        filter(Level == input$geo_level) %>%
-        pull(Group_Name) %>%
-        unique() %>%
-        sort()
+      # Instantly grab the pre-calculated vector
+      current_choices <- choices_list[[input$geo_level]]
       
       updateSelectizeInput(
         session = session,
         inputId = "selected_entities",
-        choices = filtered_choices,
-        server = TRUE
+        choices = current_choices,
+        server = TRUE # Keeps the browser memory usage ultra-lightweight
       )
     })
 
     # --------------------------------------------------------------------------
-    # 2. TIMESERIES PLOT RENDERING (GGIRAPH)
+    # 2. TIMESERIES PLOT RENDERING (Unchanged, but now snappy)
     # --------------------------------------------------------------------------
     output$drd_barcode_plot <- renderGirafe({
       req(ts_data(), input$geo_level, input$selected_entities)
       
-      # Filter and clean up data structures
+      # Filter data only for the plot itself
       plot_df <- ts_data() %>%
         filter(
-      Level == input$geo_level,
-      Group_Name %in% input$selected_entities
-    ) %>%
-      filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5))) %>%
-        # Format month as an ordered string factor so ggplot handles x-axis layout correctly
-      mutate(Month_Label = format(Month_Date, "%b %y")) %>%
+          Level == input$geo_level,
+          Group_Name %in% input$selected_entities
+        ) %>%
+        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5))) %>%
+        mutate(Month_Label = format(Month_Date, "%b %y")) %>%
         mutate(Month_Label = fct_reorder(Month_Label, Month_Date))
-      
+
       validate(
         need(nrow(plot_df) > 0, "No historical data found for the selections.")
       )
-      
-      browser()
-      # Build standard static ggplot object using interactive geoms
+
+browser()
+
+      # Build ggplot object
       gg <- ggplot(
         data = plot_df, 
         aes(
           x = Month_Label, 
           y = `Estimated DRD`, 
           fill = Group_Name,
-          # Custom tooltip construction using standard HTML line breaks
           tooltip = paste0(
             "<div style='font-family: sans-serif; padding: 5px;'>",
             "<strong>", Group_Name, "</strong><br/>",
@@ -121,11 +115,9 @@ deepDiveServer <- function(id, ts_data) {
             "Estimated DRD: ", scales::comma(`Estimated DRD`),
             "</div>"
           ),
-          # data_id triggers beautiful group elements highlighting together on hover
           data_id = Group_Name
         )
       ) +
-        # Dynamic interactive bar plot grouped together per month
         geom_bar_interactive(
           stat = "identity", 
           position = position_dodge(width = 0.8),
@@ -147,26 +139,17 @@ deepDiveServer <- function(id, ts_data) {
         ) +
         labs(y = "Estimated DRD")
 
-      # Generate the final interactive HTML widget output
       girafe(
         ggobj = gg,
         width_svg = 7,
         height_svg = 4,
         options = list(
-          opts_tooltip(
-            css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 4px;",
-            opacity = 0.95
-          ),
-          opts_hover(
-            css = "opacity: 1; stroke: #003087; stroke-width: 1.5px;"
-          ),
-          opts_hover_inv(
-            css = "opacity: 0.35;" # Dims other entities smoothly when focused on one
-          ),
-          opts_toolbar(saveaspng = FALSE) # Keeps dashboard visual space crisp
+          opts_tooltip(css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 4px;", opacity = 0.95),
+          opts_hover(css = "opacity: 1; stroke: #003087; stroke-width: 1.5px;"),
+          opts_hover_inv(css = "opacity: 0.35;"),
+          opts_toolbar(saveaspng = FALSE)
         )
       )
     })
-    
   })
 }

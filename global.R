@@ -37,6 +37,12 @@ ae_impacts <- read_csv(
 
 # long data for time series
 ae_impacts_long <- prep_historical_data(ae_impacts)
+# Pre-compile the selection lists upfront (Global environment)
+geo_choices <- list(
+  region  = sort(unique(ae_impacts_long$Group_Name[ae_impacts_long$Level == "region"])),
+  cluster = sort(unique(ae_impacts_long$Group_Name[ae_impacts_long$Level == "cluster"])),
+  trust   = sort(unique(ae_impacts_long$Group_Name[ae_impacts_long$Level == "trust"]))
+)
 
 report_date <- ae_impacts$period %>% max()
 

@@ -39,21 +39,21 @@ ui <- page_navbar(
   ),
 
 
-  glanceUI(id = "at_a_glance", 
-    min_date = min_date, 
-    max_date = max_date, 
-    SPINNER_TYPE = SPINNER_TYPE),
+  # glanceUI(id = "at_a_glance", 
+  #   min_date = min_date, 
+  #   max_date = max_date, 
+  #   SPINNER_TYPE = SPINNER_TYPE),
 
-  dashboardUI(
-    id = "main", 
-    min_date = min_date, 
-    max_date = max_date, 
-    SPINNER_TYPE = SPINNER_TYPE
-  ),
+  # dashboardUI(
+  #   id = "main", 
+  #   min_date = min_date, 
+  #   max_date = max_date, 
+  #   SPINNER_TYPE = SPINNER_TYPE
+  # ),
 
   deepDiveUI(
     id = "deep_dive",
-    SPINNER_TYPE = SPINNER_TYPE
+    SPINNER_TYPE = SPINNER_TYPE    
   )
 
 

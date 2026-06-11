@@ -62,94 +62,123 @@ ns <- NS(id)
 
 deepDiveServer <- function(id, ts_data, choices_list) {
   moduleServer(id, function(input, output, session) {
-   ns <- session$ns
+    ns <- session$ns
 
     # --------------------------------------------------------------------------
-    # 1. INSTANT SELECTIZE CHOICES (No data filtering!)
+    # 1. INSTANT SELECTIZE CHOICES
     # --------------------------------------------------------------------------
     observeEvent(input$geo_level, {
-      # Instantly grab the pre-calculated vector
       current_choices <- choices_list[[input$geo_level]]
       
       updateSelectizeInput(
         session = session,
         inputId = "selected_entities",
         choices = current_choices,
-        server = TRUE # Keeps the browser memory usage ultra-lightweight
+        server = TRUE
       )
     })
 
     # --------------------------------------------------------------------------
-    # 2. TIMESERIES PLOT RENDERING (Unchanged, but now snappy)
+    # 2. TIMESERIES PLOT RENDERING (With Constant Font Scaling)
     # --------------------------------------------------------------------------
     output$drd_barcode_plot <- renderGirafe({
       req(ts_data(), input$geo_level, input$selected_entities)
       
-      # Filter data only for the plot itself
       plot_df <- ts_data() %>%
         filter(
           Level == input$geo_level,
           Group_Name %in% input$selected_entities
         ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5))) %>%
-        mutate(Month_Label = format(Month_Date, "%b %y")) %>%
-        mutate(Month_Label = fct_reorder(Month_Label, Month_Date))
+        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5)))
 
       validate(
         need(nrow(plot_df) > 0, "No historical data found for the selections.")
       )
 
-browser()
+      # --- Configuration ---
+      axis_shade <- "grey40"
+      col_width  <- 10
+      num_selected <- length(input$selected_entities)
+      
+      # 1. DYNAMIC SVG HEIGHT SETUP
+      # Base canvas size scales lineally with selections to maintain layout spacing
+      calculated_height <- 1.5 + (num_selected * 1.5)
 
-      # Build ggplot object
-      gg <- ggplot(
-        data = plot_df, 
-        aes(
-          x = Month_Label, 
-          y = `Estimated DRD`, 
-          fill = Group_Name,
-          tooltip = paste0(
-            "<div style='font-family: sans-serif; padding: 5px;'>",
-            "<strong>", Group_Name, "</strong><br/>",
-            "Month: ", format(Month_Date, "%B %Y"), "<br/>",
-            "Estimated DRD: ", scales::comma(`Estimated DRD`),
-            "</div>"
-          ),
-          data_id = Group_Name
-        )
-      ) +
-        geom_bar_interactive(
-          stat = "identity", 
-          position = position_dodge(width = 0.8),
-          width = 0.7,
-          color = "white",
-          linewidth = 0.2
-        ) +
-        scale_fill_brewer(palette = "Set2") +
-        theme_minimal(base_size = 13) +
+      # 2. THE SECRET SAUCE: CONSTANT TEXT SIZE CALCULATION
+      # As the SVG canvas gets taller, ggplot shrinks elements to fit.
+      # We introduce a scalar multiplier to keep the text exactly uniform.
+      font_scalar <- num_selected ^ 0.45 
+      
+      # Base sizes matching your aesthetic
+      b_s        <- 11 * font_scalar
+      label_pos  <- -0.4 
+      
+      max_y <- max(plot_df$`Estimated DRD`, na.rm = TRUE) * 1.35
+      if(max_y == 0) max_y <- 10
+
+      # --- Clean Theme Layout using rel() mappings ---
+      shared_theme <- theme_minimal(base_size = b_s) +
         theme(
-          plot.margin = margin(t = 10, r = 10, b = 10, l = 10),
-          axis.title.x = element_blank(),
-          axis.title.y = element_text(color = "#475569", size = 11, face = "bold"),
-          panel.grid.major.x = element_blank(),
-          panel.grid.major.y = element_line(color = "#f1f5f9"),
+          panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          legend.position = "bottom",
-          legend.title = element_blank()
-        ) +
-        labs(y = "Estimated DRD")
+          axis.text.y      = element_blank(),
+          axis.text.x      = element_text(size = rel(1.1)), # Stabilized via scalar
+          axis.ticks.y     = element_blank(),
+          axis.title       = element_blank(),
+          axis.line.x      = element_line(color = axis_shade, linewidth = 1.5),
+          strip.background = element_blank(),
+          strip.text       = element_text(size = rel(1), face = "bold", hjust = 0.5),
+          strip.placement  = "outside",
+          panel.spacing.y  = unit(2 / font_scalar, "lines") # Keeps vertical gap clean
+        )
 
+      # --- Constructing the Plot ---
+      gg <- ggplot(plot_df, aes(x = Month_Date, y = `Estimated DRD`)) +
+        geom_col_interactive(
+          aes(
+            tooltip = paste0("<strong>", Group_Name, "</strong><br/>",
+                             "Month: ", format(Month_Date, "%B %Y"), "<br/>",
+                             "DRD: ", scales::comma(`Estimated DRD`)),
+            data_id = paste0(Group_Name, "_", Month_Date)
+          ),
+          width = col_width, 
+          fill = "#B4CEB3"
+        ) +
+        # Applying the font scalar directly to geom_text
+        geom_text_interactive(
+          aes(
+            label = round(`Estimated DRD`),
+            data_id = paste0(Group_Name, "_", Month_Date)
+          ), 
+          size = (0.7 * 11) * (font_scalar / 3), # Normalizes the ggplot pt-to-mm mapping
+          vjust = label_pos
+        ) +
+        scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
+        scale_x_date(
+          breaks = unique(plot_df$Month_Date),
+          labels = \(x) format(x, "%b %y")
+        ) +
+        labs(x = NULL, y = NULL) +
+        facet_wrap(~Group_Name, ncol = 1, axes = "all_x", strip.position = "bottom") +
+        shared_theme
+
+      # --- Render HTML Widget ---
       girafe(
         ggobj = gg,
-        width_svg = 7,
-        height_svg = 4,
+        width_svg = 8,
+        height_svg = calculated_height, 
         options = list(
-          opts_tooltip(css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 4px;", opacity = 0.95),
-          opts_hover(css = "opacity: 1; stroke: #003087; stroke-width: 1.5px;"),
-          opts_hover_inv(css = "opacity: 0.35;"),
-          opts_toolbar(saveaspng = FALSE)
+          opts_tooltip(
+            css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 6px; font-family: sans-serif;",
+            opacity = 0.95
+          ),
+          opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
+          opts_toolbar(saveaspng = FALSE),
+          # Force ggiraph to fill the card container responsively without breaking aspect structural integrity
+          opts_sizing(rescale = TRUE, width = 1) 
         )
       )
     })
+    
   })
 }

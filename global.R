@@ -35,6 +35,9 @@ ae_impacts <- read_csv(
   "https://raw.githubusercontent.com/niklz/excess_impacts_national/refs/heads/main/data/ae_impacts.csv"
 )
 
+# long data for time series
+ae_impacts_long <- prep_historical_data(ae_impacts)
+
 report_date <- ae_impacts$period %>% max()
 
 region_plot <- readRDS("data/region_plot.RDS")

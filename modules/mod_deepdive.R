@@ -93,18 +93,19 @@ deepDiveServer <- function(id, ts_data) {
       # Filter and clean up data structures
       plot_df <- ts_data() %>%
         filter(
-          Level == input$geo_level,
-          Group_Name %in% input$selected_entities
-        ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5))) %>%
+      Level == input$geo_level,
+      Group_Name %in% input$selected_entities
+    ) %>%
+      filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5))) %>%
         # Format month as an ordered string factor so ggplot handles x-axis layout correctly
-        mutate(Month_Label = format(Month_Date, "%b %y")) %>%
+      mutate(Month_Label = format(Month_Date, "%b %y")) %>%
         mutate(Month_Label = fct_reorder(Month_Label, Month_Date))
-
+      
       validate(
         need(nrow(plot_df) > 0, "No historical data found for the selections.")
       )
-
+      
+      browser()
       # Build standard static ggplot object using interactive geoms
       gg <- ggplot(
         data = plot_df, 

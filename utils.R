@@ -679,3 +679,53 @@ reactable_text_formatter <- function(positive_color = "#991b1b", negative_color 
     )
   }
 }
+
+
+prep_historical_data <- function(df) {
+  
+  # --- 1. REGION LEVEL AGGREGATION ---
+  df_region <- df %>%
+    filter(!is.na(parent_org)) %>%
+    group_by(Month_Date = period, Group_Name = parent_org) %>%
+    summarise(
+      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Level = "region",
+      # Replace this with your actual formula for Estimated DRD:
+      `Estimated DRD` = round(excess_mort, 0) 
+    )
+
+  # --- 2. CLUSTER LEVEL AGGREGATION ---
+  df_cluster <- df %>%
+    filter(!is.na(cluster)) %>%
+    group_by(Month_Date = period, Group_Name = cluster) %>%
+    summarise(
+      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Level = "cluster",
+      `Estimated DRD` = round(excess_mort, 0) 
+    )
+
+  # --- 3. TRUST (ORG) LEVEL AGGREGATION ---
+  df_trust <- df %>%
+    filter(!is.na(org)) %>%
+    group_by(Month_Date = period, Group_Name = org) %>%
+    summarise(
+      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Level = "trust",
+      `Estimated DRD` = round(excess_mort, 0) 
+    )
+
+  # --- 4. BIND TOGETHER INTO LONG-FORMAT ---
+  processed_ts_data <- bind_rows(df_region, df_cluster, df_trust) %>%
+    select(Level, Group_Name, Month_Date, `Estimated DRD`, `Total Admissions` = tot_ae_adm)
+
+  return(processed_ts_data)
+}

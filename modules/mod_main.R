@@ -153,13 +153,16 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 dashboardServer <- function(id, max_date) {
   moduleServer(id, function(input, output, session) {
     # pre load charts once landing page is rendered
-# Run this locally when the main app finishes flushing its initial UI
-    session$onFlushed(function() {
-      print("Triggered background load successfully")
-      outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
-      outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
-      outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
-    }, once = TRUE)
+    # Run this locally when the main app finishes flushing its initial UI
+    session$onFlushed(
+      function() {
+        print("Triggered background load successfully")
+        outputOptions(output, "time_series_plot", suspendWhenHidden = FALSE)
+        outputOptions(output, "choropleth", suspendWhenHidden = FALSE)
+        outputOptions(output, "funnel_plot", suspendWhenHidden = FALSE)
+      },
+      once = TRUE
+    )
 
     tooltip_css <- "background-color:white;color:black;padding:8px 12px;border-radius:4px;font-family:Inter,sans-serif;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:1px solid #e9ecef;"
 
@@ -261,41 +264,47 @@ dashboardServer <- function(id, max_date) {
     })
 
     # 3. Funnel Plot Dropdown Dynamic Syncing
-    observe({
-      req(target_month_trust())
-      req(input$highlighted_trusts)
-      req(target_month_trust())
+observe({
+  # We only *strictly* require a valid date to populate the choices
+  req(target_month_trust())
 
-      # 1. Capture the current selection without triggering a reactive loop
-      current_selection <- isolate(input$highlighted_trusts)
+  # 1. Capture the current selection without triggering a reactive loop
+  # If it's NULL (initial load), default to an empty character vector
+  current_selection <- isolate(input$highlighted_trusts)
+  if (is.null(current_selection)) current_selection <- character(0)
 
-      available_trusts <- ae_impacts %>%
-        filter(
-          period == target_month_trust(),
-          ae_type == "Type 1 (Major)",
-          org != "Total"
-        ) %>%
-        dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-        dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
-        pull(org) %>%
-        unique() %>%
-        sort()
+  available_trusts <- ae_impacts %>%
+    filter(
+      period == target_month_trust(),
+      ae_type == "Type 1 (Major)",
+      org != "Total"
+    ) %>%
+    dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
+    dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm) %>%
+    pull(org) %>%
+    unique() %>%
+    sort()
 
-      # 2. Keep only the previously selected trusts that exist in the new date's data
-      valid_selection <- intersect(current_selection, available_trusts)
+  if (is.null(available_trusts)) {
+    available_trusts <- character(0)
+  }
 
-      if (is.null(available_trusts)) {
-        available_trusts <- character(0)
-      }
-
-      # Update widget safely
-      shinyWidgets::updateVirtualSelect(
-        "highlighted_trusts",
-        choices = available_trusts,
-        selected = valid_selection,
-        session = session
-      )
-    })
+  # 2. Keep only the previously selected trusts that exist in the new date's data
+  valid_selection <- intersect(current_selection, available_trusts)
+  
+  # If the intersection is empty, pass character(0) instead of an empty list/NULL
+  if (length(valid_selection) == 0) {
+    valid_selection <- character(0)
+  }
+  
+  # Update widget safely
+  shinyWidgets::updateVirtualSelect(
+    inputId = "highlighted_trusts", # Note: Do NOT wrap in ns() inside server update functions
+    choices = available_trusts,
+    selected = valid_selection,
+    session = session
+  )
+})
 
     # Reactive calculation pipeline for both coordinate variations
     funnel_cache <- reactive({

@@ -7,7 +7,7 @@ ns <- NS(id)
     title = "Historical Trends",
 
     layout_columns(
-      col_widths = c(3, 9),
+      col_widths = c(2, 10),
 
       # ==========================================
       # CARD 1: Controls & Selectors
@@ -24,16 +24,13 @@ ns <- NS(id)
           
           tags$hr(),
           
-          selectizeInput(
+          shinyWidgets::virtualSelectInput(
             inputId = ns("selected_entities"),
             label = "Select up to 5 options:",
             choices = NULL, 
             multiple = TRUE,
-            options = list(
-              maxItems = 5,
-              placeholder = 'Type to search...',
-              plugins = list('remove_button')
-            )
+            maxValues = 5,
+            placeholder = 'Type to search...',
           )
         )
       ),
@@ -43,7 +40,7 @@ ns <- NS(id)
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Estimated DRD (Past 6 Months)"),
+        card_header("Estimated DRD (Past 12 Months)"),
         card_body(
           style = "padding: 1rem;",
           withSpinner(
@@ -70,11 +67,10 @@ deepDiveServer <- function(id, ts_data, choices_list) {
     observeEvent(input$geo_level, {
       current_choices <- choices_list[[input$geo_level]]
       
-      updateSelectizeInput(
+      shinyWidgets::updateVirtualSelect(
         session = session,
         inputId = "selected_entities",
-        choices = current_choices,
-        server = TRUE
+        choices = current_choices
       )
     })
 
@@ -89,7 +85,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           Level == input$geo_level,
           Group_Name %in% input$selected_entities
         ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(5)))
+        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(11)))
 
       validate(
         need(nrow(plot_df) > 0, "No historical data found for the selections.")
@@ -125,9 +121,9 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           axis.text.x      = element_text(size = rel(1.1)), # Stabilized via scalar
           axis.ticks.y     = element_blank(),
           axis.title       = element_blank(),
-          axis.line.x      = element_line(color = axis_shade, linewidth = 1.5),
+          axis.line.x      = element_line(color = axis_shade, linewidth = 1.25),
           strip.background = element_blank(),
-          strip.text       = element_text(size = rel(1), face = "bold", hjust = 0.5),
+          strip.text       = element_text(size = rel(0.8), face = "bold", hjust = 0.5),
           strip.placement  = "outside",
           panel.spacing.y  = unit(2 / font_scalar, "lines") # Keeps vertical gap clean
         )
@@ -156,7 +152,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
         scale_x_date(
           breaks = unique(plot_df$Month_Date),
-          labels = \(x) format(x, "%b %y")
+          labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%b\n%Y"), format(x, "%b"))
         ) +
         labs(x = NULL, y = NULL) +
         facet_wrap(~Group_Name, ncol = 1, axes = "all_x", strip.position = "bottom") +
@@ -165,7 +161,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       # --- Render HTML Widget ---
       girafe(
         ggobj = gg,
-        width_svg = 8,
+        width_svg = 14,
         height_svg = calculated_height, 
         options = list(
           opts_tooltip(

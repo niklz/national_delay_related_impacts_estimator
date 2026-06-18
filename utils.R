@@ -285,7 +285,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     scale_x_date(
       breaks = scales::breaks_pretty(n = 6),
       expand = expansion(mult = c(0.02, 0.25)),
-      labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%Y"), format(x, "%b"))
+      labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%b\n%Y"), format(x, "%b"))
     ) +
     scale_y_continuous(labels = \(x) str_c(x, " ‰")) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
@@ -554,7 +554,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
 #' @param df The dataframe context being evaluated (helps resolve Shiny module scoping issues).
 #' @param column_name The column to check for identifying row roles. Defaults to "Trust".
 #' @param bar_color Optional override for the visual bar background.
-reactable_percent_bar_formatter <- function(max_val, df, column_name = "Trust", bar_color = NULL) {
+reactable_percent_bar_formatter <- function(max_val, df, column_name = "Trust", bar_color = NULL, pos_clr = POS_CLR_LGT, neg_clr = NEG_CLR_LGT) {
   function(value, index) {
     
     # Handle NA and NaN cleanly
@@ -591,9 +591,9 @@ reactable_percent_bar_formatter <- function(max_val, df, column_name = "Trust", 
     final_bar_color <- if (!is.null(bar_color)) {
       bar_color
     } else if (value > 0) {
-      "#fed7aa" # Soft orange
+      pos_clr # Soft orange
     } else {
-      "#bbf7d0" # Soft green
+      neg_clr# Soft green
     }
     
     tags$div(

@@ -22,6 +22,11 @@ library(htmltools)
 PLOT_TITLE_WRAP <- 65
 BASE_FONT_SIZE <- 11
 SPINNER_TYPE <- 8
+NEG_CLR <- "#991b1b"
+POS_CLR <- "#166534"
+NEG_CLR_LGT <- monochromeR::generate_palette(NEG_CLR, modification = "go_lighter", 2)[2]
+POS_CLR_LGT <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter", 2)[2]
+
 
 # Utils
 source("utils.R")

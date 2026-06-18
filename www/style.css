@@ -1,33 +1,49 @@
 /* ==============================================================================
-   1. LAYOUT & STRUCTURAL SPACING
+   1. LAYOUT & STRUCTURAL SPACING - FIXED FOR CAPTIONS
    ============================================================================== */
 .container-fluid {
     padding: 0.5rem 1rem !important;
 }
 
-.navbar {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    border-bottom: 1px solid #e9ecef !important;
-    margin-bottom: 0.5rem !important;
+/* Force the bslib card-body containing this class to act as a strict container */
+.card-body.table-card-body {
+  padding: 1rem !important; 
+  display: flex !important; 
+  flex-direction: column !important; 
+  overflow: hidden !important; 
+  height: 100% !important;
+  max-height: 100% !important;
+  position: relative !important; /* Satisfies your full-screen button tracking requirement */
 }
 
-.chart-row {
-    margin-top: 15px !important;
+/* Lock the scroll container to remaining vertical viewport real estate */
+.table-scroll-container {
+  flex: 1 1 0% !important; 
+  min-height: 0 !important; 
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.custom-plot-container {
-    display: flex !important;
-    flex-direction: column !important;
+/* Ensure the spinner wrapper doesn't expand past its parent container boundaries */
+.table-scroll-container .shiny-spinner-output-container {
+    flex: 1 1 0% !important;
     height: 100% !important;
+    min-height: 0 !important;
 }
 
-.custom-plot-container .shiny-html-output,
-.girafe_container_std {
-    width: 100% !important; 
-    margin: 0 !important; 
-    padding: 0 !important;
+/* Centralized table caption styles anchored cleanly to the bottom layout boundary */
+.table-caption-bottom {
+  font-size: 1rem !important; 
+  color: #475569 !important; 
+  font-style: italic !important; 
+  margin-top: 10px !important; 
+  border-top: 1px solid #e2e8f0 !important; 
+  padding-top: 6px !important; 
+  flex-shrink: 0 !important;
+  text-align: center !important;
 }
+
 
 /* ==============================================================================
    2. GLOBAL INPUT FORM DEFAULTS & SPINNERS
@@ -272,7 +288,6 @@ input.airDatepickerInput:focus {
 .bslib-full-screen-exit {
     z-index: 2000 !important; /* Ensure the native close option is always reachable on top */
 }
-
 
 /* Ensure the formattable table fills its container and behaves predictably */
 .formattable_container table {

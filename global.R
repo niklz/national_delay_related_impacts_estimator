@@ -159,6 +159,7 @@ top_worsening <- table_data %>%
     -`Number of DTA > 4 hours`,
     -`Estimated DRD`,
     -`Proportion DTA > 4 hours`,
+    -`Estimated deaths per thousand admissions`,
     -Trend
   ) %>%
   arrange(desc(`Percent change (DRD)`))
@@ -170,6 +171,7 @@ top_improving <- table_data %>%
     -`Number of DTA > 4 hours`,
     -`Estimated DRD`,
     -`Proportion DTA > 4 hours`,
+    -`Estimated deaths per thousand admissions`,
     -Trend
   ) %>%
   arrange(`Percent change (DRD)`)

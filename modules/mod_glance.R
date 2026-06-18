@@ -14,17 +14,26 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header(stringr::str_c("Overview, ", format(report_date, "%B %y"))),
         card_body(
-          style = "padding: 1rem;",
+          # Force the body to be a full-height flex column with no internal scrolling
+          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          
+          # This container now takes up all available space and handles the scrollbar
           div(
-            style = "overflow-y: auto; max-height: 100%;",
+            style = "flex: 1; min-height: 0; overflow-y: auto;",
             withSpinner(
               reactableOutput(ns("overview_table")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          
+          # CAPTION BLOCK: Fixed at the bottom, never pushed out
+          div(
+            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            tags$strong("Table 1: "), 
+            stringr::str_c("Key performance indicators and activity overview by Trust, ", format(report_date, "%B %Y"), ". DRD values represent estimated levels rounded to the nearest integer.")
           )
         )
       ),
@@ -34,17 +43,24 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top worsening (past 3 months)"),
         card_body(
-          style = "padding: 1rem;",
+          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          
           div(
-            style = "overflow-y: auto; max-height: 100%;",
+            style = "flex: 1; min-height: 0; overflow-y: auto;",
             withSpinner(
               reactableOutput(ns("top_worsening")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          
+          # CAPTION BLOCK
+          div(
+            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            tags$strong("Table 2: "), 
+            "Top regional outliers by percentage increase in DRD over the preceding rolling 3-month period."
           )
         )
       ),
@@ -54,29 +70,28 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Top improving (past 3 months)"),
         card_body(
-          style = "padding: 1rem;",
+          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          
           div(
-            style = "overflow-y: auto; max-height: 100%;",
+            style = "flex: 1; min-height: 0; overflow-y: auto;",
             withSpinner(
               reactableOutput(ns("top_improving")),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          
+          # CAPTION BLOCK
+          div(
+            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            tags$strong("Table 3: "), 
+            "Top performing regional highlights by greatest percentage reduction in DRD over the past 3 months."
           )
         )
       )
-    ) #,
-    # # ==========================================================================
-    #   # PERFORMANCE TRIGGER: Signal when the browser finishes drawing these tables
-    #   # ==========================================================================
-    #   tags$script(HTML(sprintf("
-    #     $(document).one('shiny:idle', function(event) {
-    #       Shiny.setInputValue('%s', true);
-    #     });
-    #   ", ns("tables_rendered"))))
+    )
   )
 }
 
@@ -99,8 +114,6 @@ glanceServer <- function(id) {
         `Estimated deaths per thousand admissions`,
         `Trend`
       )
-
-      # mutate(`Estimated deaths per thousand admissions (Estimated DRD)` = str_c(`Estimated deaths per thousand admissions`, "(", `Estimated DRD`, ")")) %>%
 
       valid_rows <- display_df %>% filter(Trust != "Total")
       max_admissions <- max(valid_rows$`Total admissions`, na.rm = TRUE)
@@ -146,20 +159,39 @@ glanceServer <- function(id) {
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            # FIX: Passed display_df context here
             cell = reactable_percent_bar_formatter(max_pct, df = display_df, bar_color = "#cbd5e1")
           ),
 
+          `Estimated DRD` = colDef(show = FALSE),
+
           `Estimated deaths per thousand admissions` = colDef(
-            name = "Estimated deaths per thousand admissions",
-            minWidth = 120,
+            name = "Estimated DRD: Rate per thousand admissions (Total)",
+            minWidth = 150, 
             headerStyle = list(
               whiteSpace = "normal",
               wordBreak = "normal",
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            cell = reactable_text_formatter()
+            cell = function(value, index) {
+              drd_value <- display_df$`Estimated DRD`[index]
+              is_total <- display_df$Trust[index] == "Total"
+              
+              if (is.na(value)) {
+                display_text <- "-"
+              } else if (is.na(drd_value)) {
+                display_text <- as.character(value)
+              } else {
+                display_text <- paste0(round(value, 1), " (", round(drd_value), ")")
+              }
+              
+              tags$span(
+                style = list(
+                  fontWeight = if (is_total) "bold" else "normal"
+                ),
+                display_text
+              )
+            }
           ),
 
           Trend = colDef(
@@ -231,7 +263,6 @@ glanceServer <- function(id) {
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            # FIX: Passed top_worsening context here
             cell = reactable_percent_bar_formatter(max_pct, df = top_worsening)
           )
         )
@@ -276,7 +307,6 @@ glanceServer <- function(id) {
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            # FIX: Passed top_improving context here
             cell = reactable_percent_bar_formatter(max_pct, df = top_improving)
           )
         )

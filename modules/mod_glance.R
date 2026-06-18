@@ -15,12 +15,10 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          # Force the body to be a full-height flex column with no internal scrolling
-          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          class = "glance-card-body",
           
-          # This container now takes up all available space and handles the scrollbar
           div(
-            style = "flex: 1; min-height: 0; overflow-y: auto;",
+            class = "glance-table-scroll",
             withSpinner(
               reactableOutput(ns("overview_table")),
               type = SPINNER_TYPE,
@@ -29,9 +27,9 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             )
           ),
           
-          # CAPTION BLOCK: Fixed at the bottom, never pushed out
+          # CAPTION BLOCK
           div(
-            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            class = "glance-caption",
             tags$strong("Table 1: "), 
             stringr::str_c("Key performance indicators and activity overview by Trust, ", format(report_date, "%B %Y"), ". DRD values represent estimated levels rounded to the nearest integer.")
           )
@@ -44,10 +42,10 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          class = "glance-card-body",
           
           div(
-            style = "flex: 1; min-height: 0; overflow-y: auto;",
+            class = "glance-table-scroll",
             withSpinner(
               reactableOutput(ns("top_worsening")),
               type = SPINNER_TYPE,
@@ -58,7 +56,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           
           # CAPTION BLOCK
           div(
-            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            class = "glance-caption",
             tags$strong("Table 2: "), 
             "Top regional outliers by percentage increase in DRD over the preceding rolling 3-month period."
           )
@@ -71,10 +69,10 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          style = "padding: 1rem; display: flex; flex-direction: column; overflow: hidden; height: 100%;",
+          class = "glance-card-body",
           
           div(
-            style = "flex: 1; min-height: 0; overflow-y: auto;",
+            class = "glance-table-scroll",
             withSpinner(
               reactableOutput(ns("top_improving")),
               type = SPINNER_TYPE,
@@ -85,7 +83,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           
           # CAPTION BLOCK
           div(
-            style = "font-size: 1rem; color: #475569; font-style: italic; margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 6px; flex-shrink: 0;text-align: center;",
+            class = "glance-caption",
             tags$strong("Table 3: "), 
             "Top performing regional highlights by greatest percentage reduction in DRD over the past 3 months."
           )
@@ -94,7 +92,6 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
     )
   )
 }
-
 
 glanceServer <- function(id) {
   moduleServer(id, function(input, output, session) {

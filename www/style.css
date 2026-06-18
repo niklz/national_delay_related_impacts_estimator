@@ -1,49 +1,75 @@
 /* ==============================================================================
-   1. LAYOUT & STRUCTURAL SPACING - FIXED FOR CAPTIONS
+   1. LAYOUT & STRUCTURAL SPACING
    ============================================================================== */
 .container-fluid {
     padding: 0.5rem 1rem !important;
 }
 
-/* Force the bslib card-body containing this class to act as a strict container */
-.card-body.table-card-body {
-  padding: 1rem !important; 
-  display: flex !important; 
-  flex-direction: column !important; 
-  overflow: hidden !important; 
-  height: 100% !important;
-  max-height: 100% !important;
-  position: relative !important; /* Satisfies your full-screen button tracking requirement */
+.navbar {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    min-height: auto !important; /* Prevents Bootstrap from enforcing a default minimum height */
 }
 
-/* Lock the scroll container to remaining vertical viewport real estate */
-.table-scroll-container {
-  flex: 1 1 0% !important; 
-  min-height: 0 !important; 
-  overflow-y: auto !important;
-  display: flex !important;
-  flex-direction: column !important;
+.navbar > .container-fluid {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
 }
 
-/* Ensure the spinner wrapper doesn't expand past its parent container boundaries */
-.table-scroll-container .shiny-spinner-output-container {
-    flex: 1 1 0% !important;
+/* Ensure the wrapper holding the page tabs also aligns centrally */
+.navbar-nav {
+    display: flex !important;
+    align-items: center !important;
+    flex-direction: row !important; /* Keeps tabs flowing side-by-side */
+}
+
+/* --- ADD THESE RULES TO COLLAPSE THE INTERNAL HEIGHT --- */
+.navbar-brand {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* .navbar-nav .nav-link {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+} */
+
+.navbar-container {
+    min-height: auto !important;
+}
+
+/* --- EXACT PORT OF WORKING INLINE TABLE STYLES --- */
+
+/* Force the body to be a full-height flex column with no internal scrolling */
+.glance-card-body {
+    padding: 1rem !important; 
+    display: flex !important; 
+    flex-direction: column !important; 
+    overflow: hidden !important; 
     height: 100% !important;
-    min-height: 0 !important;
 }
 
-/* Centralized table caption styles anchored cleanly to the bottom layout boundary */
-.table-caption-bottom {
-  font-size: 1rem !important; 
-  color: #475569 !important; 
-  font-style: italic !important; 
-  margin-top: 10px !important; 
-  border-top: 1px solid #e2e8f0 !important; 
-  padding-top: 6px !important; 
-  flex-shrink: 0 !important;
-  text-align: center !important;
+/* Container takes up available space and handles the table scrollbar */
+.glance-table-scroll {
+    flex: 1 !important; 
+    min-height: 0 !important; 
+    overflow-y: auto !important;
 }
 
+/* Fixed caption block at the bottom, never pushed out */
+.glance-caption {
+    font-size: 1rem !important; 
+    color: #475569 !important; 
+    font-style: italic !important; 
+    margin-top: 10px !important; 
+    border-top: 1px solid #e2e8f0 !important; 
+    padding-top: 6px !important; 
+    flex-shrink: 0 !important;
+    text-align: center !important;
+}
 
 /* ==============================================================================
    2. GLOBAL INPUT FORM DEFAULTS & SPINNERS

@@ -34,6 +34,7 @@ source("utils.R")
 source("modules/mod_main.R")
 source("modules/mod_glance.R")
 source("modules/mod_deepdive.R")
+source("modules/mod_about.R")
 
 # Read data
 ae_impacts <- read_csv(

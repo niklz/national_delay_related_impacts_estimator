@@ -6,8 +6,13 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
   nav_panel(
     title = "At a glance",
 
+    header = tags$p(
+      style = "margin: 0; padding-top: 0rem; font-size: 14px; color: #555; line-height: 1.4;",
+      str_c("Latest data from: ", format(report_date, "%B %Y"))
+    ),
+
     layout_columns(
-      col_widths = c(6, 3, 3),
+      col_widths = c(7, 5), # Split the main area 50/50 between the two cards
 
       # ==========================================
       # CARD 1: Overview table (REACTABLE)
@@ -15,10 +20,10 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          class = "glance-card-body",
-          
+          class = "content-card-body",
+
           div(
-            class = "glance-table-scroll",
+            class = "content-table-scroll",
             withSpinner(
               reactableOutput(ns("overview_table")),
               type = SPINNER_TYPE,
@@ -26,66 +31,56 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
               size = 0.7
             )
           ),
-          
+
           # CAPTION BLOCK
           div(
-            class = "glance-caption",
-            tags$strong("Table 1: "), 
-            stringr::str_c("Key performance indicators and activity overview by Trust, ", format(report_date, "%B %Y"), ". DRD values represent estimated levels rounded to the nearest integer.")
+            class = "content-caption",
+            tags$strong("Table 1: "),
+            HTML(stringr::str_c(
+              "Type-1 A&E admissions and wait times by trust, ranked by the proportion of patients delayed over 4 hours. For each trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the total DRD¹ in brackets.<br>",
+              "¹ DRD: Delay-related deaths"
+            ))
           )
         )
       ),
 
       # ==========================================
-      # CARD 2: Top worseners (REACTABLE)
+      # CARD 2: Combined Top Worseners & Improvers
       # ==========================================
       card(
         full_screen = TRUE,
         card_body(
-          class = "glance-card-body",
-          
-          div(
-            class = "glance-table-scroll",
-            withSpinner(
-              reactableOutput(ns("top_worsening")),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          ),
-          
-          # CAPTION BLOCK
-          div(
-            class = "glance-caption",
-            tags$strong("Table 2: "), 
-            "Top regional outliers by percentage increase in DRD over the preceding rolling 3-month period."
-          )
-        )
-      ),
+          class = "content-card-body",
 
-      # ==========================================
-      # CARD 3: Top improvers (REACTABLE)
-      # ==========================================
-      card(
-        full_screen = TRUE,
-        card_body(
-          class = "glance-card-body",
-          
-          div(
-            class = "glance-table-scroll",
-            withSpinner(
-              reactableOutput(ns("top_improving")),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
+          # Nested column layout so Table 2 and Table 3 sit side-by-side
+          layout_columns(
+            col_widths = c(6, 6),
+
+            div(
+              class = "content-table-scroll",
+              withSpinner(
+                reactableOutput(ns("top_improving")),
+                type = SPINNER_TYPE,
+                color = "#003087",
+                size = 0.7
+              )
+            ),
+            div(
+              class = "content-table-scroll",
+              withSpinner(
+                reactableOutput(ns("top_worsening")),
+                type = SPINNER_TYPE,
+                color = "#003087",
+                size = 0.7
+              )
+            ),
           ),
-          
-          # CAPTION BLOCK
+
+          # SHARED CAPTION BLOCK
           div(
-            class = "glance-caption",
-            tags$strong("Table 3: "), 
-            "Top performing regional highlights by greatest percentage reduction in DRD over the past 3 months."
+            class = "content-caption",
+            tags$strong("Table 2 & 3: "),
+            "Top improving and worsening trust, where performance is ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
           )
         )
       )
@@ -143,12 +138,12 @@ glanceServer <- function(id) {
 
           `Total admissions` = colDef(
             name = "Total admissions",
-            minWidth = 130,
+            minWidth = 110,
             cell = reactable_bar_formatter(max_admissions, df = display_df)
           ),
 
           `Proportion DTA > 4 hours` = colDef(
-            name = "Proportion DTA > 4 hours",
+            name = "% Waiting > 4 hrs for admission",
             minWidth = 110,
             headerStyle = list(
               whiteSpace = "normal",
@@ -162,7 +157,7 @@ glanceServer <- function(id) {
           `Estimated DRD` = colDef(show = FALSE),
 
           `Estimated deaths per thousand admissions` = colDef(
-            name = "Estimated DRD: Rate per thousand admissions (Total)",
+            name = "Estimated DRD¹: Rate per thousand admissions (Total)",
             minWidth = 150, 
             headerStyle = list(
               whiteSpace = "normal",
@@ -252,8 +247,8 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Percent change",
-            minWidth = 110,
+            name = "Relative increase of DRD over 3 months",
+            minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",
               wordBreak = "normal",
@@ -296,8 +291,8 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Percent change",
-            minWidth = 110,
+            name = "Relative decrease of DRD over 3 months",
+            minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",
               wordBreak = "normal",

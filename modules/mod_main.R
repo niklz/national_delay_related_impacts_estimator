@@ -2,7 +2,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
   ns <- NS(id)
 
   nav_panel(
-    title = "Dashboard",
+    title = "Visual overview",
 
     layout_columns(
       col_widths = c(4, 4, 4),
@@ -11,13 +11,13 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          class = "d-flex flex-column align-items-stretch",
-          style = "overflow: hidden !important; padding: 1rem;",
+          class = "d-flex flex-column align-items-stretch content-card-body",
+          style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
 
           div(
             class = "slider-breathing-room",
             sliderInput(
-              inputId = ns("ts_date_slider"), # Wrapped in ns()
+              inputId = ns("ts_date_slider"),
               label = "Select time-series window:",
               min = min_date,
               max = max_date,
@@ -34,11 +34,17 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
                 ns("time_series_plot"),
                 width = "100%",
                 height = "100%"
-              ), # Wrapped in ns()
+              ),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          # CAPTION BLOCK
+          div(
+            class = "content-caption",
+            tags$strong("Figure 1: "), 
+            "Rolling trend of DRD metrics over the selected temporal window."
           )
         )
       ),
@@ -47,13 +53,13 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          class = "d-flex flex-column align-items-stretch",
-          style = "overflow: hidden !important; padding: 1rem;",
+          class = "d-flex flex-column align-items-stretch content-card-body",
+          style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
 
           div(
             class = "choropleth-control-header",
             airDatepickerInput(
-              inputId = ns("cluster_date"), # Wrapped in ns()
+              inputId = ns("cluster_date"),
               label = "Select target month:",
               value = max_date,
               minDate = min_date,
@@ -69,11 +75,17 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
             withSpinner(
-              girafeOutput(ns("choropleth"), width = "100%", height = "100%"), # Wrapped in ns()
+              girafeOutput(ns("choropleth"), width = "100%", height = "100%"),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          # CAPTION BLOCK
+          div(
+            class = "content-caption",
+            tags$strong("Figure 2: "), 
+            "Geographic distribution and clustering of regional DRD outliers."
           )
         )
       ),
@@ -82,8 +94,8 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       card(
         full_screen = TRUE,
         card_body(
-          class = "d-flex flex-column align-items-stretch",
-          style = "overflow: hidden !important; padding: 1rem;",
+          class = "d-flex flex-column align-items-stretch content-card-body",
+          style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
 
           div(
             class = "funnel-control-header",
@@ -92,7 +104,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             div(
               style = "flex: 1 1 140px; min-width: 0;",
               airDatepickerInput(
-                inputId = ns("trust_date"), # Wrapped in ns()
+                inputId = ns("trust_date"),
                 label = "Select target month:",
                 value = max_date,
                 minDate = min_date,
@@ -108,7 +120,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             div(
               style = "flex: 2 1 180px; min-width: 0;",
               shinyWidgets::virtualSelectInput(
-                inputId = ns("highlighted_trusts"), # Wrapped in ns()
+                inputId = ns("highlighted_trusts"),
                 label = "Highlight Trust(s):",
                 choices = NULL,
                 multiple = TRUE,
@@ -125,7 +137,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
                   class = "form-check-input",
                   type = "checkbox",
                   id = ns("log_x")
-                ), # Wrapped in ns()
+                ),
                 tags$label(
                   class = "form-check-label",
                   `for` = ns("log_x"),
@@ -137,11 +149,17 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
             withSpinner(
-              girafeOutput(ns("funnel_plot"), width = "100%", height = "100%"), # Wrapped in ns()
+              girafeOutput(ns("funnel_plot"), width = "100%", height = "100%"),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
             )
+          ),
+          # CAPTION BLOCK
+          div(
+            class = "content-caption",
+            tags$strong("Figure 3: "), 
+            "Funnel plot identifying Trust-level variations against established control limits."
           )
         )
       )

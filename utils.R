@@ -591,9 +591,9 @@ reactable_percent_bar_formatter <- function(max_val, df, column_name = "Trust", 
     final_bar_color <- if (!is.null(bar_color)) {
       bar_color
     } else if (value > 0) {
-      pos_clr # Soft orange
+      neg_clr # Soft orange
     } else {
-      neg_clr# Soft green
+      pos_clr# Soft green
     }
     
     tags$div(
@@ -688,13 +688,13 @@ prep_historical_data <- function(df) {
     filter(!is.na(parent_org)) %>%
     group_by(Month_Date = period, Group_Name = parent_org) %>%
     summarise(
-      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      across(c(tot_ae_adm, dta_gt4, excess_mort, excess_beds), sum),
       .groups = "drop"
     ) %>%
     mutate(
       Level = "region",
-      # Replace this with your actual formula for Estimated DRD:
-      `Estimated DRD` = round(excess_mort, 0) 
+      `Estimated DRD` = round(excess_mort, 0), 
+      `Estimated excess bed utilisation` = round(excess_beds, 0) 
     )
 
   # --- 2. CLUSTER LEVEL AGGREGATION ---
@@ -702,12 +702,13 @@ prep_historical_data <- function(df) {
     filter(!is.na(cluster)) %>%
     group_by(Month_Date = period, Group_Name = cluster) %>%
     summarise(
-      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      across(c(tot_ae_adm, dta_gt4, excess_mort, excess_beds), sum),
       .groups = "drop"
     ) %>%
     mutate(
       Level = "cluster",
-      `Estimated DRD` = round(excess_mort, 0) 
+      `Estimated DRD` = round(excess_mort, 0),
+      `Estimated excess bed utilisation` = round(excess_beds, 0) 
     )
 
   # --- 3. TRUST (ORG) LEVEL AGGREGATION ---
@@ -715,12 +716,13 @@ prep_historical_data <- function(df) {
     filter(!is.na(org)) %>%
     group_by(Month_Date = period, Group_Name = org) %>%
     summarise(
-      across(c(tot_ae_adm, dta_gt4, excess_mort), sum),
+      across(c(tot_ae_adm, dta_gt4, excess_mort, excess_beds), sum),
       .groups = "drop"
     ) %>%
     mutate(
       Level = "trust",
-      `Estimated DRD` = round(excess_mort, 0) 
+      `Estimated DRD` = round(excess_mort, 0),
+      `Estimated excess bed utilisation` = round(excess_beds, 0)  
     )
 
   # --- 4. BIND TOGETHER INTO LONG-FORMAT ---

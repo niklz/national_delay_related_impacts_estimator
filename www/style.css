@@ -44,7 +44,7 @@
 /* --- EXACT PORT OF WORKING INLINE TABLE STYLES --- */
 
 /* Force the body to be a full-height flex column with no internal scrolling */
-.glance-card-body {
+.content-card-body {
     padding: 1rem !important; 
     display: flex !important; 
     flex-direction: column !important; 
@@ -53,14 +53,15 @@
 }
 
 /* Container takes up available space and handles the table scrollbar */
-.glance-table-scroll {
+.content-table-scroll {
     flex: 1 !important; 
     min-height: 0 !important; 
     overflow-y: auto !important;
+    margin-top: 28px !important; /* <--- Pushes the table down to clear the fullscreen button */
 }
 
 /* Fixed caption block at the bottom, never pushed out */
-.glance-caption {
+.content-caption {
     font-size: 1rem !important; 
     color: #475569 !important; 
     font-style: italic !important; 
@@ -255,10 +256,10 @@ input.airDatepickerInput:focus {
     visibility: visible !important;
     transform: none !important;
     
-    /* Position at the top right of the card body */
-    top: 15px !important;
+    /* Position neatly in the top right of the card body's padding space */
+    top: 8px !important;
     bottom: auto !important;
-    right: 15px !important;
+    right: 8px !important;
     position: absolute !important;
     z-index: 1050 !important; 
     
@@ -270,7 +271,7 @@ input.airDatepickerInput:focus {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    height: 32px !important;
+    height: 30px !important; /* Slightly slimmer */
     width: auto !important;
     text-decoration: none !important;
     color: #495057 !important;

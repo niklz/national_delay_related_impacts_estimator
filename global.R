@@ -16,6 +16,10 @@ require(ggrepel)
 library(geomtextpath)
 library(reactable)
 library(htmltools)
+library(emojifont)
+library(ggtext)
+library(paletteer)
+library(ggh4x)
 
 
 # UI params

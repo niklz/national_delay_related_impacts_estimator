@@ -727,7 +727,7 @@ prep_historical_data <- function(df) {
 
   # --- 4. BIND TOGETHER INTO LONG-FORMAT ---
   processed_ts_data <- bind_rows(df_region, df_cluster, df_trust) %>%
-    select(Level, Group_Name, Month_Date, `Estimated DRD`, `Total Admissions` = tot_ae_adm)
+    select(Level, Group_Name, Month_Date, `Estimated DRD`, `Total Admissions` = tot_ae_adm, `Estimated excess bed utilisation`)
 
   return(processed_ts_data)
 }

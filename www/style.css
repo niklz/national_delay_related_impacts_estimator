@@ -351,3 +351,36 @@ input.airDatepickerInput:focus {
 .formattable_container table td:nth-child(5) {
     width: 14% !important;
 }
+
+/* ==============================================================================
+   7. GLOBAL FOOTNOTE SECTION
+   ============================================================================== */
+/* Forces the container right up against the bottom of the grid cards */
+.global-footnotes {
+    padding: 0px 15px 0px 15px !important;
+    margin-top: 0px !important; 
+    
+    /* --- REDUCE BOTTOM MARGIN --- */
+    margin-bottom: -12px !important; /* Negative margin yanks the page bottom up; tweak as needed */
+    
+    width: 100% !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Tightens the horizontal rule separator sitting inside the container */
+.global-footnotes hr {
+    margin: 0px 0px 6px 0px !important;
+    border-top: 1px solid #e2e8f0 !important;
+    opacity: 1 !important;
+}
+
+/* Target the <p> tag directly! Bootstrap overrides inherited italics on paragraphs */
+.global-footnotes p {
+    font-size: 1rem !important;
+    font-style: italic !important;
+    color: #555555 !important;
+    line-height: 1.0 !important;
+    margin: 0px !important;
+    padding: 0px !important;
+}

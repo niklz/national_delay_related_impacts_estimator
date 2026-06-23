@@ -1,5 +1,7 @@
 # modules/mod_glance.R
 
+# modules/mod_glance.R
+
 glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
   ns <- NS(id)
 
@@ -11,8 +13,9 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
       str_c("Latest data from: ", format(report_date, "%B %Y"))
     ),
 
+    # Main layout containing the two cards
     layout_columns(
-      col_widths = c(7, 5), # Split the main area 50/50 between the two cards
+      col_widths = c(7, 5),
 
       # ==========================================
       # CARD 1: Overview table (REACTABLE)
@@ -32,14 +35,13 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             )
           ),
 
-          # CAPTION BLOCK
+          # CAPTION BLOCK (Unchanged)
           div(
             class = "content-caption",
             tags$strong("Table 1: "),
-            HTML(stringr::str_c(
-              "Type-1 A&E admissions and wait times by trust, ranked by the proportion of patients delayed over 4 hours. For each trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the total DRD¹ in brackets.<br>",
-              "¹ DRD: Delay-related deaths"
-            ))
+            HTML(
+              "Type-1 A&E admissions and wait times by trust, ranked by the proportion of patients delayed over 4 hours. For each trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
+            )
           )
         )
       ),
@@ -52,7 +54,6 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
         card_body(
           class = "content-card-body",
 
-          # Nested column layout so Table 2 and Table 3 sit side-by-side
           layout_columns(
             col_widths = c(6, 6),
 
@@ -76,13 +77,25 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             ),
           ),
 
-          # SHARED CAPTION BLOCK
+          # SHARED CAPTION BLOCK (Unchanged)
           div(
             class = "content-caption",
             tags$strong("Table 2 & 3: "),
-            "Top improving and worsening trust, where performance is ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
+            "Top improving and worsening trusts, ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
           )
         )
+      )
+    ),
+
+    # ==========================================
+    # GLOBAL FOOTNOTE SECTION
+    # ==========================================
+    div(
+      class = "global-footnotes",
+      tags$hr(),
+      tags$p(
+        tags$strong("¹ DRD:"),
+        " Delay-related deaths"
       )
     )
   )
@@ -247,7 +260,7 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Relative increase of DRD over 3 months",
+            name = "Relative increase of DRD¹ over 3 months",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",
@@ -291,7 +304,7 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Relative decrease of DRD over 3 months",
+            name = "Relative decrease of DRD¹ over 3 months",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",

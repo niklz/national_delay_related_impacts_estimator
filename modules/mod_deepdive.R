@@ -1,14 +1,14 @@
 # modules/mod_deepdive.R
 
 deepDiveUI <- function(id, SPINNER_TYPE) {
-ns <- NS(id)
-
+  ns <- NS(id)
+  
   nav_panel(
     title = "Historical Trends",
-
+    
     layout_columns(
       col_widths = c(2, 10),
-
+      
       # ==========================================
       # CARD 1: Controls & Selectors
       # ==========================================
@@ -31,11 +31,11 @@ ns <- NS(id)
             multiple = TRUE,
             maxValues = 5,
             placeholder = 'Type to search...',
-            selected = "Total"
+            updateOn = "close" # <-- FIX 1: Prevents reactive lag; only updates on close
           )
         )
       ),
-
+      
       # ==========================================
       # CARD 2: Timeseries Bar Chart (GGIRAPH)
       # ==========================================
@@ -45,7 +45,6 @@ ns <- NS(id)
         card_body(
           style = "padding: 1rem;",
           withSpinner(
-            # Using girafeOutput instead of plotlyOutput
             girafeOutput(ns("drd_barcode_plot"), height = "100%"),
             type = SPINNER_TYPE,
             color = "#003087",
@@ -63,18 +62,25 @@ deepDiveServer <- function(id, ts_data, choices_list) {
     ns <- session$ns
 
     # --------------------------------------------------------------------------
-    # 1. INSTANT SELECTIZE CHOICES
-    # --------------------------------------------------------------------------
-    observeEvent(input$geo_level, {
-      current_choices <- choices_list[[input$geo_level]]
-      
-      shinyWidgets::updateVirtualSelect(
-        session = session,
-        inputId = "selected_entities",
-        choices = current_choices
-      )
-    })
+# 1. INSTANT SELECTIZE CHOICES
+# --------------------------------------------------------------------------
+observeEvent(input$geo_level, {
+  current_choices <- choices_list[[input$geo_level]]
 
+  # Determine if "Total" exists in this group layer; if not, grab the first element
+  default_selection <- if ("Total" %in% current_choices) {
+    "Total"
+  } else {
+    current_choices[1]
+  }
+
+  shinyWidgets::updateVirtualSelect(
+    session = session,
+    inputId = "selected_entities",
+    choices = current_choices,
+    selected = default_selection # <-- FIX 2: Explicitly handles selection during server updates
+  )
+})
     # --------------------------------------------------------------------------
     # 2. TIMESERIES PLOT RENDERING (With Constant Font Scaling)
     # --------------------------------------------------------------------------
@@ -142,7 +148,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           axis.text.x      = element_text(size = rel(1.1)), # Stabilized via scalar
           axis.ticks.y     = element_blank(),
           axis.title       = element_blank(),
-          axis.line.x      = element_line(color = axis_shade, linewidth = 1),
+          axis.line.x      = element_line(color = axis_shade, linewidth = 0.8),
           strip.background = element_blank(),
           strip.text       = element_text(size = rel(0.8), face = "bold", hjust = 0.5),
           strip.placement  = "outside",
@@ -223,7 +229,7 @@ p_bed <- plot_df %>%
     .by = Group_Name
   ) %>%
   ggplot(aes(
-    y = fct_rev(Group_Name)
+    y = 1 # 1. Replace the discrete Y with a dummy numerical Y
   )) +
   geom_col(
     aes(
@@ -231,51 +237,70 @@ p_bed <- plot_df %>%
       fill = Group_Name,
       color = Group_Name
     ),
-    width = 0.3
+    width = 0.3,
+    orientation = "y" 
   ) +
 
-# 2. Value Label
+  # 2. Add y = 1 explicitly to your text geoms
   geom_text(
     aes(
       x = `Estimated excess bed utilisation` + x_offset,
+      y = 1, 
       label = round(`Estimated excess bed utilisation`, 0)
     ),
     vjust = 1.3,
     hjust = 0.5,
-    size = geom_text_size, # <-- Unified size applied here
+    size = geom_text_size,
     show.legend = FALSE
   ) +
 
-  # 3. Bed Icon Label
   geom_text(
-    aes(x = `Estimated excess bed utilisation` + x_offset),
+    aes(
+      x = `Estimated excess bed utilisation` + x_offset,
+      y = 1 
+    ),
     label = fontawesome("fa-bed"),
     family = "fontawesome-webfont",
     vjust = -0.3,
-    hjust = 0.5, 
-    size = geom_text_size, # <-- Unified size applied here
+    hjust = 0.5,
+    size = geom_text_size,
     show.legend = FALSE
   ) +
-    labs(
-          title = "Estimated avoidable acute bed utilisation",
-          subtitle = "(average number of acute beds in use at any time attributable solely to admission delays)"
-    ) +
+  labs(
+    title = "Estimated avoidable acute bed utilisation",
+    subtitle = "(average number of acute beds in use at any time attributable solely to admission delays)"
+  ) +
 
   scale_x_continuous(limits = c(0, max_x_bed), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0.5, 1.5), expand = c(0, 0)) + # 3. Lock the dummy Y axis
   scale_fill_manual(values = pal) +
   scale_colour_manual(values = pal) +
+
+  facet_wrap2(
+    ~Group_Name,
+    ncol = 1,
+    strip.position = "bottom"
+  ) +
+
   theme_minimal(base_size = b_s) +
   theme(
     panel.grid = element_blank(),
     axis.text = element_blank(),
     axis.title = element_blank(),
-    axis.line.y = element_line(color = axis_shade, linewidth = 1.5),
-    legend.position = "none"
+    axis.line.y      = element_line(color = axis_shade, linewidth = 0.8),
+    legend.position = "none",
+    
+    # 5. Match the vertical layout rules from p_mort identically
+    panel.spacing.y = unit(2 / font_scalar, "lines"), 
+    
+    # 6. Invisible strips: keeps the identical physical height for perfect alignment
+    strip.text = element_text(size = rel(0.8), face = "bold", color = "transparent"),
+    strip.background = element_blank()
   ) +
   title_styling
-
       
       gg <- (p_mort | p_bed) + plot_layout(widths = c(3, 2))
+
 
       # --- Render HTML Widget ---
       girafe(

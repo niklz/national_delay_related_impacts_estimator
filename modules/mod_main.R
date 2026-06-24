@@ -44,7 +44,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             class = "content-caption",
             tags$strong("Figure 1: "), 
-            "Rolling trend of DRD metrics over the selected temporal window."
+            "Regional time-series of delay-related deaths per 1000 admissions."
           )
         )
       ),
@@ -85,7 +85,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             class = "content-caption",
             tags$strong("Figure 2: "), 
-            "Geographic distribution and clustering of regional DRD outliers."
+            "Geographic distribution of delay-related deaths per thousand admissions."
           )
         )
       ),
@@ -159,7 +159,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             class = "content-caption",
             tags$strong("Figure 3: "), 
-            "Funnel plot identifying Trust-level variations against established control limits."
+            "Funnel plot of delay-related deaths versus montly admissions at trust-level."
           )
         )
       )

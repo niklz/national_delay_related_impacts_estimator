@@ -49,35 +49,35 @@ deepDiveUI <- function(id, SPINNER_TYPE) {
           class = "d-flex flex-column align-items-stretch content-card-body",
           style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
 
-          # --- ADDED: Local CSS overrides for the wide plot ---
           tags$style(HTML(sprintf(
             "
-            /* Break the global 6:5 ratio for this 10-col widescreen plot */
+            /* Remove the forced aspect ratio so the server calculation dictates height */
             .%1$s .html-widget.girafe svg {
-              aspect-ratio: 21 / 9 !important; 
-              max-height: 100%% !important;
+              height: auto !important;
             }
             /* Force the plot to align flush with the top instead of centering */
             .%1$s .html-widget.girafe > div {
               align-items: flex-start !important;
             }
-            /* Replicate the negative margin pull-up used by Page 1's slider */
+            /* Replicate the negative margin pull-up */
             .%1$s {
               margin-top: -10px !important;
             }
-          ",
+            ",
             "barcode-plot-wrapper"
           ))),
 
-          # Wrapped spinner in an auto-flexing container box with the new override class
+          # Wrapped spinner in an auto-flexing container box
           div(
-            class = "barcode-plot-wrapper", # <-- Applied custom class here
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
+            class = "barcode-plot-wrapper",
+            # CHANGE: overflow: hidden -> overflow-y: auto
+            # This allows a scrollbar to appear inside the card if 5 rows exceeds the screen height
+            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;",
             withSpinner(
               girafeOutput(
                 ns("drd_barcode_plot"),
                 width = "100%",
-                height = "100%"
+                height = "100%" 
               ),
               type = SPINNER_TYPE,
               color = "#003087",
@@ -90,7 +90,7 @@ deepDiveUI <- function(id, SPINNER_TYPE) {
             class = "content-caption",
             tags$strong("Figure 4: "),
             HTML(
-              "Monthly delay related excess mortality and excess bed utilisation."
+              "Monthly excess mortality and bed utilisation related to delays to admission from A&E."
             )
           )
         )
@@ -102,6 +102,14 @@ deepDiveUI <- function(id, SPINNER_TYPE) {
 
 deepDiveServer <- function(id, ts_data, choices_list) {
   moduleServer(id, function(input, output, session) {
+    session$onFlushed(
+      function() {
+        print("Triggered background load successfully")
+        outputOptions(output, "drd_barcode_plot", suspendWhenHidden = FALSE)
+      },
+      once = TRUE
+    )
+
     ns <- session$ns
 
     # --------------------------------------------------------------------------
@@ -111,17 +119,17 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       current_choices <- choices_list[[input$geo_level]]
 
       # Determine if "Total" exists in this group layer; if not, grab the first element
-      default_selection <- if ("Total" %in% current_choices) {
+      default_selection <- if ("Total" %in% current_choices & input$geo_level == "region") {
         "Total"
       } else {
-        current_choices[1]
+        NULL
       }
 
       shinyWidgets::updateVirtualSelect(
         session = session,
         inputId = "selected_entities",
         choices = current_choices,
-        selected = default_selection # <-- FIX 2: Explicitly handles selection during server updates
+        selected = default_selection
       )
     })
     # --------------------------------------------------------------------------
@@ -321,13 +329,18 @@ deepDiveServer <- function(id, ts_data, choices_list) {
 
       gg <- (p_mort | p_bed) + plot_layout(widths = c(3, 2))
 
-      browser()
+      # Calculate dynamic height based on number of rows
+      num_selected <- length(input$selected_entities)
+      row_height <- 2.0 # Height per facet in inches
+      padding_y <- 1.5 # Space for titles, subtitles, and axes
+
+      dynamic_height <- padding_y + (num_selected * row_height)
+
       # --- Render HTML Widget ---
       girafe(
         ggobj = gg,
-        # MATCHED LOGIC: Set fixed bounds that exactly match your global CSS 6:5 aspect ratio rule
-        width_svg = 12.0,
-        height_svg = 10.0,
+        width_svg = 12.0, # Keep the "canvas" width wide
+        height_svg = dynamic_height, # Pass the calculated height
         options = list(
           opts_tooltip(
             css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 6px; font-family: sans-serif;",
@@ -335,6 +348,8 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           ),
           opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
           opts_toolbar(saveaspng = FALSE),
+          # rescale=TRUE means it will always fill the width of your UI container,
+          # and scale the height proportionally to width_svg/height_svg.
           opts_sizing(rescale = TRUE, width = 1)
         )
       )

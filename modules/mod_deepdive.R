@@ -4,7 +4,8 @@ deepDiveUI <- function(id, SPINNER_TYPE) {
   ns <- NS(id)
 
   nav_panel(
-    title = "Historical Trends",
+    title = "System filter and bed utilisation",
+    icon = icon("chart-line"),
 
     layout_columns(
       col_widths = c(2, 10),

@@ -2,7 +2,8 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
   ns <- NS(id)
 
   nav_panel(
-    title = "Visual overview",
+    title = "Graphical overview & outlier analysis",
+    icon = icon("pie-chart"),
 
     layout_columns(
       col_widths = c(4, 4, 4),

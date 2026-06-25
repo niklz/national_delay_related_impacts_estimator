@@ -7,6 +7,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
 
   nav_panel(
     title = "At a glance",
+    icon = icon("table"),
 
     header = tags$p(
       style = "margin: 0; padding-top: 0rem; font-size: 14px; color: #555; line-height: 1.4;",

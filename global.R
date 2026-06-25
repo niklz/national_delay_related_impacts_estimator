@@ -20,6 +20,7 @@ library(emojifont)
 library(ggtext)
 library(paletteer)
 library(ggh4x)
+library(bsicons)
 
 
 # UI params

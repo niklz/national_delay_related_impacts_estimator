@@ -1,16 +1,18 @@
 # UI.R
 
 ui <- page_navbar(
-  title = tags$p(
-    style = "margin: 0; padding: 0; font-size: 20px; font-weight: 600; color: #000000; max-width: 900px; line-height: 1.2;",
-    "Estimated impacts from delayed admission from A&E"
-  ),
+  title = 
+    "Estimated impacts from delayed admission from A&E",
+  # title = tags$p(
+  #   style = "margin: 0; padding: 0; font-size: 20px; font-weight: 600; color: #000000; max-width: 900px; line-height: 1.2;",
+  #   "Estimated impacts from delayed admission from A&E"
+  # ),
 
   theme = bs_theme(
     version = 5,
     bg = "#ffffff",
     fg = "#333333",
-    primary = "#003087"
+    # primary = "#0#03087"
   ),
 
   # Link directly to your CSS file inside the www directory

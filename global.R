@@ -34,7 +34,7 @@ POS_CLR_LGT <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter
 
 PANEL_TITLE_1 <- "At a glance"
 PANEL_TITLE_2 <- "Graphical overview & outlier analysis"
-PANEL_TITLE_3 <- "System filter & bed utilisation"
+PANEL_TITLE_3 <- "System comparison: delay-related deaths & bed utilisation"
 
 
 # Utils

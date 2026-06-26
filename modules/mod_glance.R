@@ -132,9 +132,30 @@ glanceServer <- function(id) {
         pagination = FALSE,
         filterable = TRUE,
         highlight = TRUE,
-        defaultColDef = colDef(align = "center"),
+        # defaultColDef = colDef(align = "center"),
         fullWidth = TRUE,
         style = list(width = "100%", overflowX = "hidden"),
+
+        # Keep total row in filter no matter what
+        defaultColDef = colDef(
+          align = "center",
+          filterMethod = JS(
+            "function(rows, columnId, filterValue) {
+        return rows.filter(function(row) {
+          // Always keep the Total row visible
+          if (row.values['Trust'] === 'Total') {
+            return true;
+          }
+          // Perform standard text filtering for all other rows
+          const val = row.values[columnId];
+          if (val === null || val === undefined) {
+            return false;
+          }
+          return String(val).toLowerCase().includes(String(filterValue).toLowerCase());
+        });
+      }"
+          )
+        ),
 
         rowStyle = function(index) {
           if (display_df$Trust[index] == "Total") {
@@ -164,14 +185,18 @@ glanceServer <- function(id) {
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            cell = reactable_percent_bar_formatter(max_pct, df = display_df, bar_color = "#cbd5e1")
+            cell = reactable_percent_bar_formatter(
+              max_pct,
+              df = display_df,
+              bar_color = "#cbd5e1"
+            )
           ),
 
           `Estimated DRD` = colDef(show = FALSE),
 
           `Estimated deaths per thousand admissions` = colDef(
             name = "Estimated DRD¹: Rate per thousand admissions (Total)",
-            minWidth = 150, 
+            minWidth = 150,
             headerStyle = list(
               whiteSpace = "normal",
               wordBreak = "normal",
@@ -181,15 +206,20 @@ glanceServer <- function(id) {
             cell = function(value, index) {
               drd_value <- display_df$`Estimated DRD`[index]
               is_total <- display_df$Trust[index] == "Total"
-              
+
               if (is.na(value)) {
                 display_text <- "-"
               } else if (is.na(drd_value)) {
                 display_text <- as.character(value)
               } else {
-                display_text <- paste0(round(value, 1), " (", scales::comma(round(drd_value)), ")")
+                display_text <- paste0(
+                  round(value, 1),
+                  " (",
+                  scales::comma(round(drd_value)),
+                  ")"
+                )
               }
-              
+
               tags$span(
                 style = list(
                   fontWeight = if (is_total) "bold" else "normal"
@@ -210,7 +240,9 @@ glanceServer <- function(id) {
             cell = function(value, index) {
               is_total <- display_df$Trust[index] == "Total"
 
-              if (is.na(value)) return("-")
+              if (is.na(value)) {
+                return("-")
+              }
 
               text_color <- case_when(
                 grepl("Decline", value) ~ "#166534",

@@ -297,8 +297,11 @@ deepDiveServer <- function(id, ts_data, choices_list) {
               "Month: ",
               format(Month_Date, "%B %Y"),
               "<br/>",
-              "DRD Rate: ",
-              per_k_labeller(rate)
+              "Estimated DRD: ",
+              scales::comma(`Estimated DRD`),
+              "<br/>",
+              "Total Admissions: ",
+              scales::comma(`Total Admissions`)
             ),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
@@ -443,8 +446,11 @@ deepDiveServer <- function(id, ts_data, choices_list) {
               "Month: ",
               format(Month_Date, "%B %Y"),
               "<br/>",
-              "DRD Rate: ",
-              per_k_labeller(rate)
+              "Estimated DRD: ",
+              scales::comma(`Estimated DRD`),
+              "<br/>",
+              "Total Admissions: ",
+              scales::comma(`Total Admissions`)
             ),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
@@ -603,15 +609,14 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           ),
           .by = Group_Name
         ) %>%
-        ggplot(aes(y = 1)) +
+        ggplot(aes(x = Group_Name, y = `Estimated excess bed utilisation`)) +
         geom_col(
           aes(
             x = `Estimated excess bed utilisation`,
             fill = Group_Name,
             color = Group_Name
           ),
-          width = 0.3,
-          orientation = "y"
+          width = 0.3
         ) +
         geom_text(
           aes(
@@ -637,17 +642,16 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           title = "Estimated avoidable acute bed utilisation",
           subtitle = "(average number of acute beds in use at any time attributable solely to admission delays)"
         ) +
-        scale_x_continuous(limits = c(0, max_x_bed), expand = c(0, 0)) +
-        scale_y_continuous(limits = c(0.5, 1.5), expand = c(0, 0)) +
+        scale_y_continuous(limits = c(0, max_x_bed), expand = c(0, 0)) +
+        # scale_y_continuous(limits = c(0.5, 1.5), expand = c(0, 0)) +
         scale_fill_manual(values = pal) +
         scale_colour_manual(values = pal) +
-        facet_wrap2(~Group_Name, ncol = 1, strip.position = "bottom") +
         theme_minimal(base_size = b_s) +
         theme(
           panel.grid = element_blank(),
           axis.text = element_blank(),
           axis.title = element_blank(),
-          axis.line.y = element_line(color = axis_shade, linewidth = 0.8),
+          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
           legend.position = "none",
           panel.spacing.y = unit(2 / font_scalar, "lines"),
           strip.text = element_text(

@@ -34,6 +34,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
             label = "Select up to 5 options:",
             choices = NULL,
             multiple = TRUE,
+            search = TRUE,
             maxValues = 5,
             placeholder = 'Type to search...',
             updateOn = "close"

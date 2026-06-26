@@ -14,11 +14,21 @@ rate_labeller <- function(x) {
   ifelse(x < 1e-10, "0", paste0("1 in ", round(1 / x)))
 }
 
-per_k_labeller <- function(x) {
-  ifelse(
-    x < 1e-10,
-    "0",
-    paste0(round(1000 * x), " per thousand\n", "(1 in ", round(1 / x), ")")
+per_k_labeller <- function(x, tol = 1e-4, newline = TRUE, one_in = TRUE) {
+  per_k_text <- dplyr::case_when(
+    x < tol ~ "0",
+    TRUE ~ paste0(scales::comma(round(1000 * x)), " per thousand")
+  )
+  
+  if (!one_in) {
+    return(per_k_text)
+  }
+  
+  sep <- if (newline) "\n" else " "
+  
+  dplyr::case_when(
+    x < tol ~ per_k_text,
+    TRUE     ~ paste0(per_k_text, sep, "(1 in ", scales::comma(round(1 / x)), ")")
   )
 }
 
@@ -69,9 +79,7 @@ funnel_plot <- function(
         "\n",
         scales::comma(round(excess_mort)),
         " delay-related deaths\n",
-        "Rate: 1 in ",
-        precise_denom,
-        " admissions"
+       "Rate: ", per_k_labeller(rate, newline = FALSE)
       )
     )
 
@@ -188,10 +196,10 @@ funnel_plot <- function(
       title = str_wrap("Delay-related deaths per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
-      colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60)
+      colour = str_wrap("Mortality risk rate", 60)
     ) +
     scale_y_continuous(limits = c(0, y_limit), labels = \(x) {
-      str_c(1000 * x, " ‰")
+      str_c(1000 * x)
     }) +
     scale_colour_stepsn(
       n.breaks = 5,
@@ -259,7 +267,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       tooltip_text = paste0(
         parent_org, ", ", format(period, "%Y %B"), "\n",
         scales::comma(round(excess_mort)), " delay-related deaths\n",
-        "Rate: 1 in ", precise_denom, " admissions"
+        "Rate: ", per_k_labeller(rate, newline = FALSE)
       )
     )
 
@@ -287,9 +295,9 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
       expand = expansion(mult = c(0.02, 0.25)),
       labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%b\n%Y"), format(x, "%b"))
     ) +
-    scale_y_continuous(labels = \(x) str_c(x, " ‰")) +
+    scale_y_continuous(labels = \(x) str_c(x)) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
-    labs(title = str_wrap("Delay-related deaths per Region", wrap), x = NULL, y = NULL) +
+    labs(title = str_wrap("Delay-related deaths per thousand admissions per Region", wrap), x = NULL, y = NULL) +
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
@@ -348,7 +356,7 @@ funnel_plot <- function(
       tooltip = paste0(
         org, ", ", format(period, "%Y %B"), "\n",
         scales::comma(round(excess_mort)), " delay-related deaths\n",
-        "Rate: 1 in ", precise_denom, " admissions"
+        "Rate: ", per_k_labeller(rate, newline = FALSE)
       )
     )
 
@@ -426,10 +434,10 @@ funnel_plot <- function(
     ggplot2::scale_alpha_identity(guide = "none") +
     
     ggplot2::labs(
-      title = str_wrap("Delay-related deaths per Trust", wrap),
+      title = str_wrap("Delay-related deaths per thousand admissions per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
-      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
+      fill = str_wrap("Mortality risk rate", 60) 
     ) +
     
     ggplot2::scale_fill_stepsn(
@@ -456,11 +464,11 @@ funnel_plot <- function(
   if (log_x) {
     p <- p + 
       ggplot2::scale_x_log10(labels = scales::comma, limits = c(x_min * 0.85, x_limit_extended), expand = c(0, 0)) +
-      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰"), expand = c(0, 0))
+      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x), expand = c(0, 0))
   } else {
     p <- p + 
       ggplot2::scale_x_continuous(labels = scales::comma, limits = c(x_min * 0.95, x_limit_extended), expand = c(0, 0)) +
-      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x, " ‰"), expand = c(0, 0))
+      ggplot2::scale_y_continuous(limits = c(0, y_limit), labels = \(x) str_c(1000 * x), expand = c(0, 0))
   }
 
   return(p)
@@ -490,11 +498,10 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
         "\n",
         scales::comma(round(excess_mort)),
         " delay-related deaths",
-        "\nRate: 1 in ",
-        precise_denom,
-        " admissions"
+        "\nRate: ", per_k_labeller(rate, newline = FALSE)
       )
     )
+
 
   unique_bins <- plot_data %>% arrange(denom) %>% pull(rate_bin) %>% unique()
   breaks <- plot_data %>% arrange(denom) %>% pull(denom) %>% unique()
@@ -528,7 +535,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       )
     ) +
     labs(
-      title = str_wrap("Delay-related deaths, per ICB/Cluster", wrap),
+      title = str_wrap("Delay-related deaths per thousand admissions, per ICB/Cluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +

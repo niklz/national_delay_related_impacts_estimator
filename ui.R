@@ -2,7 +2,7 @@
 
 ui <- page_navbar(
   title = 
-    "Estimated impacts from delayed admission from A&E",
+    tags$strong(style = "color: #393939", "Estimated impacts due to delayed admissions from A&E"),
   # title = tags$p(
   #   style = "margin: 0; padding: 0; font-size: 20px; font-weight: 600; color: #000000; max-width: 900px; line-height: 1.2;",
   #   "Estimated impacts from delayed admission from A&E"

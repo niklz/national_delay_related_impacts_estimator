@@ -8,11 +8,10 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
   nav_panel(
     title = title,
     icon = icon("table"),
-
-    header = tags$p(
-      style = "margin: 0; padding-top: 0rem; font-size: 14px; color: #555; line-height: 1.4;",
-      str_c("Latest data from: ", format(report_date, "%B %Y"))
-    ),
+            tags$p(
+        style = "margin: 0; padding-top: 0rem; font-size: 14px; color: #555; line-height: 1.4;",
+        str_c("Latest data from: ", format(report_date, "%B %Y"))
+      ),
 
     # Main layout containing the two cards
     layout_columns(
@@ -41,7 +40,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
             class = "content-caption",
             tags$strong("Table 1: "),
             HTML(
-              "Type-1 A&E admissions and wait times by Trust, ranked by the proportion of patients delayed over 4 hours. For each Trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
+              "Type-1 A&E admissions and wait times by Trust, ranked by the number of DRD¹ per thousand admissions. For each Trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
             )
           )
         )
@@ -82,7 +81,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
           div(
             class = "content-caption",
             tags$strong("Table 2 & 3: "),
-            "Top improving and worsening Trusts, ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
+            "Top improving and worsening Trusts, ranked by percentage change in DRD¹ per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
           )
         )
       )
@@ -188,7 +187,7 @@ glanceServer <- function(id) {
               } else if (is.na(drd_value)) {
                 display_text <- as.character(value)
               } else {
-                display_text <- paste0(round(value, 1), " (", round(drd_value), ")")
+                display_text <- paste0(round(value, 1), " (", scales::comma(round(drd_value)), ")")
               }
               
               tags$span(
@@ -201,7 +200,7 @@ glanceServer <- function(id) {
           ),
 
           Trend = colDef(
-            name = "Trend",
+            name = "Trend in DRD¹ (last 3 months)",
             minWidth = 100,
             headerStyle = list(
               whiteSpace = "normal",

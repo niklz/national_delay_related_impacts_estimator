@@ -185,7 +185,7 @@ funnel_plot <- function(
       alpha = 0.6
     ) +
     ggplot2::labs(
-      title = str_wrap("Delay-related deaths per trust", wrap),
+      title = str_wrap("Delay-related deaths per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
       colour = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60)
@@ -289,7 +289,7 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     ) +
     scale_y_continuous(labels = \(x) str_c(x, " ‰")) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
-    labs(title = str_wrap("Delay-related deaths per region", wrap), x = NULL, y = NULL) +
+    labs(title = str_wrap("Delay-related deaths per Region", wrap), x = NULL, y = NULL) +
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
@@ -426,7 +426,7 @@ funnel_plot <- function(
     ggplot2::scale_alpha_identity(guide = "none") +
     
     ggplot2::labs(
-      title = str_wrap("Delay-related deaths per trust", wrap),
+      title = str_wrap("Delay-related deaths per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
@@ -528,7 +528,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       )
     ) +
     labs(
-      title = str_wrap("Delay-related deaths, per ICB cluster", wrap),
+      title = str_wrap("Delay-related deaths, per ICB/Cluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +

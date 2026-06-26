@@ -32,6 +32,10 @@ POS_CLR <- "#166534"
 NEG_CLR_LGT <- monochromeR::generate_palette(NEG_CLR, modification = "go_lighter", 2)[2]
 POS_CLR_LGT <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter", 2)[2]
 
+PANEL_TITLE_1 <- "At a glance"
+PANEL_TITLE_2 <- "Graphical overview & outlier analysis"
+PANEL_TITLE_3 <- "System filter & bed utilisation"
+
 
 # Utils
 source("utils.R")

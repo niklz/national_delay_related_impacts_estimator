@@ -11,7 +11,7 @@ ui <- page_navbar(
   theme = bs_theme(
     version = 5,
     bg = "#ffffff",
-    fg = "#333333",
+    fg = "#333333"
     # primary = "#0#03087"
   ),
 
@@ -24,20 +24,23 @@ ui <- page_navbar(
     id = "at_a_glance",
     min_date = min_date,
     max_date = max_date,
-    SPINNER_TYPE = SPINNER_TYPE
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_1
   ),
 
   dashboardUI(
     id = "main",
     min_date = min_date,
     max_date = max_date,
-    SPINNER_TYPE = SPINNER_TYPE
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_2
   ),
 
   deepDiveUI(
     id = "deep_dive",
-    SPINNER_TYPE = SPINNER_TYPE
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_3
   ),
   
-  aboutUI(id = "about_page"),
+  aboutUI(id = "about_page")
 )

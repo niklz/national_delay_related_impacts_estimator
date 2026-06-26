@@ -15,7 +15,7 @@ aboutUI <- function(id) {
       ),
       tags$p(
         style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
-        "Studies have indicated that crowding within A&E departments is associated with patient harm. Boarding is the practice of holding patients in the A&E department while they wait for an impatient bed and repressents a clinically unproductive delay.",
+        "Studies have indicated that crowding and delays within A&E departments is associated with patient harm. Boarding is the practice of holding patients in the A&E department while they wait for an impatient bed and repressents a clinically unproductive delay.",
       ),
       tags$p(
         style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
@@ -27,7 +27,8 @@ aboutUI <- function(id) {
           "Howlett et al.",
           style = "color: #003087; text-decoration: underline;"
         ),
-        ", utilising robust statistical modeling that controls for patient demographics, arrival times, and other sources of delays to emergency admissions. This study found that each additional 4 hours of boarding time was associated with an extra 8.6 hours of inpatient length of stay and an 8.4% increase in the odds of 30-day mortality."
+        ", utilising robust statistical modeling that controls for patient demographics, arrival times, and other sources of delays to emergency admissions. This study found that ",
+        tags$strong("each additional 4 hours of boarding time was associated with an extra 8.6 hours of inpatient length of stay and an 8.4% increase in the odds of 30-day mortality."),
       ),
 
       tags$hr(style = "margin: 30px 0;"),
@@ -43,7 +44,7 @@ aboutUI <- function(id) {
         tags$a(
           href = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
           target = "_blank",
-          "NHS England Statistics",
+          tags$strong("NHS England Statistics"),
           style = "color: #003087; text-decoration: underline;"
         ),
         ". We report two distinct measures of delay-related harm:"
@@ -55,7 +56,7 @@ aboutUI <- function(id) {
         tags$li(
           style = "margin-bottom: 12px;",
           tags$strong("Delay-Related Deaths (DRD): "),
-          "The estimated increase in mortality statistically linked to admission delays, contextualised as a rate per 1,000 Type-1 A&E admissions to normalise hospital size differences."
+          "The estimated increase in mortality statistically linked to admission delays, both in raw count and normalised as a rate per 1,000 Type-1 A&E admissions to adjust for hospital size differences."
         ),
         tags$li(
           tags$strong("Excess Length of Stay (LOS): "),
@@ -64,49 +65,44 @@ aboutUI <- function(id) {
       ),
       tags$p(
         style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
-        "All the data-processing and calculation steps for these metrics can be found on ",
+        tags$strong("All the data-processing and calculation steps for these metrics can be found on ",
         tags$a(
           href = "https://github.com/niklz/excess_impacts_national",
           target = "_blank",
           "github",
           style = "color: #003087; text-decoration: underline;"
           ),
-        "."
+        ".")
         ),
       tags$hr(style = "margin: 30px 0;"),
 
       tags$h3(
-        "Table of contents",
+        "Dashboard Architecture",
         style = "font-weight: bold; margin-bottom: 15px;"
       ),
       tags$h5(
-        "At a glance",
+        PANEL_TITLE_1,
         style = "font-weight: bold; margin-bottom: 15px;"
       ),
       tags$p(
         style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
-        "This tabular overview provides a master record of the raw A&E admissions and wait-times across England. Also included are cateorgies denoting the recent (latest 3 months) trend of specific trusts and tables ranking those trusts which are improving or deteriorating. This trend is computed from a STL (Seasonal and Trend decomposition using LOESS) model.",
+        "A tabular overview of the raw A&E admissions and wait-times data across England for the latest month. Includes an ", tags$strong("STL (Seasonal and Trend decomposition using LOESS)"), " model tracking 3-month trajectories to isolate improving or deteriorating Acute Trusts."
+      ),
+      tags$h5(
+        PANEL_TITLE_2,
+        style = "font-weight: bold; margin-bottom: 15px;"
+      ),
+      tags$p(
+        style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
+        "Visualises DRD via adjustable regional time-series for seasonal analysis, spatial heatmaps for ICB/Cluster hotspot detection, and a Trust-level funnel plot. The funnel utilises an ", tags$strong("overdispersed binomial distribution (inflation factor of 3)"), " to separate true performance outliers from expected statistical noise."
       ),
             tags$h5(
-        "Graphical overview & outlier analysis",
+        PANEL_TITLE_3,
         style = "font-weight: bold; margin-bottom: 15px;"
       ),
       tags$p(
         style = "font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;",
-        "This panel hosts 3 figures visualising DRD:",
-        tags$ul(
-        style = "font-size: 1.1rem; line-height: 1.7; padding-left: 20px;",
-        tags$li(
-          style = "margin-bottom: 12px;",
-          "A regional time-series, facilitating trend analysis and system seasonal pressures."
-        ),
-        tags$li(
-          "A spatial heatmap aiding in the identification of regional hotspots and giving ICB / cluster perfomance at a glance."
-        ),
-          tags$li(
-          "A funnel chart allowing comparission on admission delays between trusts of different sizes. The inclusion of control limits help users avoid misinterpretting noise in the data."
-        )
-      )
+        "Allows users to isolate and side-by-side compare up to 5 Regions, ICBs, or Trusts over a longitudinal 12-month window. This view comapres both the raw DRD and the estimated number of acute hospital beds lost to A&E boarding delays, quantifying the operational impact and failure-demand arising from issues in A&E."
       )
     )
   )
@@ -115,6 +111,6 @@ aboutUI <- function(id) {
 #' @export
 aboutServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-    # Server logic goes here if the About page becomes interactive
+
   })
 }

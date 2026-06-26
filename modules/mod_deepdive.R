@@ -1,10 +1,10 @@
 # modules/mod_deepdive.R
 
-deepDiveUI <- function(id, SPINNER_TYPE) {
+deepDiveUI <- function(id, SPINNER_TYPE, title) {
   ns <- NS(id)
 
   nav_panel(
-    title = "System filter and bed utilisation",
+    title = title,
     icon = icon("chart-line"),
 
     layout_columns(
@@ -228,7 +228,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         geom_text_interactive(
           aes(
-            label = round(`Estimated DRD`),
+            label = scales::comma(round(`Estimated DRD`)),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
           size = geom_text_size,
@@ -286,7 +286,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           aes(
             x = `Estimated excess bed utilisation` + x_offset,
             y = 1,
-            label = round(`Estimated excess bed utilisation`, 0)
+            label = scales::comma(round(`Estimated excess bed utilisation`, 0))
           ),
           vjust = 1.3,
           hjust = 0.5,

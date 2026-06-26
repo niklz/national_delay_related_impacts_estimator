@@ -2,11 +2,11 @@
 
 # modules/mod_glance.R
 
-glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
+glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
   ns <- NS(id)
 
   nav_panel(
-    title = "At a glance",
+    title = title,
     icon = icon("table"),
 
     header = tags$p(
@@ -41,7 +41,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
             class = "content-caption",
             tags$strong("Table 1: "),
             HTML(
-              "Type-1 A&E admissions and wait times by trust, ranked by the proportion of patients delayed over 4 hours. For each trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
+              "Type-1 A&E admissions and wait times by Trust, ranked by the proportion of patients delayed over 4 hours. For each Trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
             )
           )
         )
@@ -82,7 +82,7 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             class = "content-caption",
             tags$strong("Table 2 & 3: "),
-            "Top improving and worsening trusts, ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
+            "Top improving and worsening Trusts, ranked by percentage change in delay-related deaths per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
           )
         )
       )

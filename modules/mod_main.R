@@ -1,8 +1,8 @@
-dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
+dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
   ns <- NS(id)
 
   nav_panel(
-    title = "Graphical overview & outlier analysis",
+    title = title,
     icon = icon("pie-chart"),
 
     layout_columns(
@@ -160,7 +160,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE) {
           div(
             class = "content-caption",
             tags$strong("Figure 3: "), 
-            "Funnel plot of delay-related deaths versus montly admissions at trust-level."
+            "Funnel plot of delay-related deaths versus montly admissions at Trust-level."
           )
         )
       )

@@ -19,16 +19,10 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
           selectInput(
             inputId = ns("geo_level"),
             label = "Select Grouping Level:",
-            choices = c(
-              "Region" = "region",
-              "ICB / cluster" = "cluster",
-              "Trust" = "trust"
-            ),
+            choices = c("Region" = "region", "ICB / cluster" = "cluster", "Trust" = "trust"),
             selected = "region"
           ),
-
           tags$hr(),
-
           shinyWidgets::virtualSelectInput(
             inputId = ns("selected_entities"),
             label = "Select up to 5 options:",
@@ -42,150 +36,101 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
         )
       ),
 
-      # ==========================================
-      # CARD 2: Timeseries Bar Chart (GGIRAPH)
+# ==========================================
+      # CARD 2: Timeseries Analysis Stack
       # ==========================================
       card(
         full_screen = TRUE,
-        class = "d-flex flex-column align-items-stretch content-card-body",
-        style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
-        card(
-          card_body(
+        card_header("Estimated Delay-Related Deaths"),
+        card_body(
+          style = "padding: 0.5rem; display: flex; flex-direction: column; gap: 0; overflow: hidden !important; height: 100%;",
+          
+          # Refined layout scoped overrides for strict container boundaries
+          tags$style(HTML("
+            /* Pinned Total view: Force strict containment within its 25% container allocation */
+            .total-container .html-widget.girafe, 
+            .total-container .html-widget.girafe svg { 
+              height: 100% !important; 
+              max-height: 100% !important;
+              width: 100% !important;
+            }
+            .total-container .html-widget.girafe > div { 
+              align-items: center !important; 
+              height: 100% !important;
+            }
+            
+            /* Scrollable Comparison panels: Allow dynamic vertical height expansion */
+            .comparison-container .html-widget.girafe svg { 
+              height: auto !important; 
+            }
+            .comparison-container .html-widget.girafe > div { 
+              align-items: flex-start !important; 
+            }
+          ")),
 
-            div(
-            class = "barcode-plot-wrapper",
-            # CHANGE: overflow: hidden -> overflow-y: auto
-            # This allows a scrollbar to appear inside the card if 5 rows exceeds the screen height
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;",
+          # Pinned Top Row: Allocated exactly 25% of card height (Never Scrolls)
+          div(
+            class = "total-container",
+            style = "flex: 0 0 33%; height: 33%; max-height: 33%; width: 100%; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem; overflow: hidden;",
             withSpinner(
-              girafeOutput(
-                ns("total_drd_plot"),
-                width = "100%",
-                height = "100%" 
-              ),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
+              girafeOutput(ns("total_drd_plot"), width = "100%", height = "100%"),
+              type = SPINNER_TYPE, color = "#003087", size = 0.7
             )
-          )
+          ),
+
+          # Dynamic Comparison Rows: Allocated 75% of card height (Scrolls vertically)
+          div(
+            class = "comparison-container",
+            style = "flex: 0 0 66%; height: 66%; max-height: 66%; width: 100%; overflow-y: auto; overflow-x: hidden; min-height: 0; padding-top: 0.5rem;",
+            withSpinner(
+              girafeOutput(ns("drd_barcode_plot"), width = "100%", height = "auto"),
+              type = SPINNER_TYPE, color = "#003087", size = 0.7
+            )
           )
         ),
-        card(
-        card_body(
-
-          tags$style(HTML(sprintf(
-            "
-            /* Remove the forced aspect ratio so the server calculation dictates height */
-            .%1$s .html-widget.girafe svg {
-              height: auto !important;
-            }
-            /* Force the plot to align flush with the top instead of centering */
-            .%1$s .html-widget.girafe > div {
-              align-items: flex-start !important;
-            }
-            /* Replicate the negative margin pull-up */
-            .%1$s {
-              margin-top: -10px !important;
-            }
-            ",
-            "barcode-plot-wrapper"
-          ))),
-
-          # Wrapped spinner in an auto-flexing container box
-          div(
-            class = "barcode-plot-wrapper",
-            # CHANGE: overflow: hidden -> overflow-y: auto
-            # This allows a scrollbar to appear inside the card if 5 rows exceeds the screen height
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;",
-            withSpinner(
-              girafeOutput(
-                ns("drd_barcode_plot"),
-                width = "100%",
-                height = "100%" 
-              ),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          ),
-
-          # Pinned standard caption block
+        card_footer(
           div(
             class = "content-caption",
             tags$strong("Figure 4: "),
-            HTML(
-              "Monthly excess mortality and bed utilisation related to delays to admission from A&E."
-            )
+            HTML("Monthly excess mortality related to delays to admission from A&E.")
           )
         )
-      )
-    ),
-    card(
+      ),
+
+      # ==========================================
+      # CARD 3: Avoidable Bed Utilisation Chart
+      # ==========================================
       card(
+        full_screen = TRUE,
+        card_header("Bed Utilisation Analysis"),
         card_body(
-
-          tags$style(HTML(sprintf(
-            "
-            /* Remove the forced aspect ratio so the server calculation dictates height */
-            .%1$s .html-widget.girafe svg {
-              height: auto !important;
-            }
-            /* Force the plot to align flush with the top instead of centering */
-            .%1$s .html-widget.girafe > div {
-              align-items: flex-start !important;
-            }
-            /* Replicate the negative margin pull-up */
-            .%1$s {
-              margin-top: -10px !important;
-            }
-            ",
-            "barcode-plot-wrapper"
-          ))),
-
-          # Wrapped spinner in an auto-flexing container box
+          style = "padding: 0.5rem; display: flex; flex-direction: column; overflow: hidden !important;",
           div(
-            class = "barcode-plot-wrapper",
-            # CHANGE: overflow: hidden -> overflow-y: auto
-            # This allows a scrollbar to appear inside the card if 5 rows exceeds the screen height
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;",
+            style = "flex: 1 1 auto; width: 100%; overflow-y: auto; overflow-x: hidden; min-height: 0;",
             withSpinner(
-              girafeOutput(
-                ns("bed_plot"),
-                width = "100%",
-                height = "100%" 
-              ),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
+              girafeOutput(ns("bed_plot"), width = "100%", height = "auto"),
+              type = SPINNER_TYPE, color = "#003087", size = 0.7
             )
-          ),
-
-          # Pinned standard caption block
+          )
+        ),
+        card_footer(
           div(
             class = "content-caption",
-            tags$strong("Figure 4: "),
-            HTML(
-              "Monthly excess mortality and bed utilisation related to delays to admission from A&E."
-            )
+            tags$strong("Figure 5: "),
+            HTML("Average number of acute beds in use at any time attributable solely to admission delays.")
           )
         )
       )
-
-    )
     )
   )
 }
 
-
 deepDiveServer <- function(id, ts_data, choices_list) {
   moduleServer(id, function(input, output, session) {
-    session$onFlushed(
-      function() {
-        print("Triggered background load successfully")
-        outputOptions(output, "drd_barcode_plot", suspendWhenHidden = FALSE)
-      },
-      once = TRUE
-    )
+    
+    session$onFlushed(function() {
+      outputOptions(output, "drd_barcode_plot", suspendWhenHidden = FALSE)
+    }, once = TRUE)
 
     ns <- session$ns
 
@@ -194,493 +139,182 @@ deepDiveServer <- function(id, ts_data, choices_list) {
     # --------------------------------------------------------------------------
     observeEvent(input$geo_level, {
       current_choices <- choices_list[[input$geo_level]]
-
-      # # Determine if "Total" exists in this group layer; if not, grab the first element
-      # default_selection <- if ("Total" %in% current_choices & input$geo_level == "region") {
-      #   "Total"
-      # } else {
-      #   NULL
-      # }
-
       shinyWidgets::updateVirtualSelect(
         session = session,
         inputId = "selected_entities",
-        choices = current_choices#,
-        # selected = default_selection
+        choices = current_choices
       )
     })
-    # --------------------------------------------------------------------------
-    # 2. TIMESERIES PLOT RENDERING (With Constant Font Scaling)
+
+    # Shared graphic configurations
+    axis_shade     <- "grey40"
+    col_width      <- 20
+    pal            <- paletteer_d("lisa::ClaudeMonet_1")
+    geom_text_size <- 3.8
+    b_s            <- 11
+    label_pos      <- -0.4
+    aligned_margin <- margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")
+
+    shared_theme <- theme_minimal(base_size = b_s) +
+      theme(
+        plot.margin       = aligned_margin,
+        panel.grid.major  = element_blank(),
+        panel.grid.minor  = element_blank(),
+        axis.text.y       = element_blank(),
+        axis.text.x       = element_text(size = rel(1.1)),
+        axis.ticks.y      = element_blank(),
+        axis.title        = element_blank(),
+        axis.line.x       = element_line(color = axis_shade, linewidth = 0.8),
+        strip.background  = element_blank(),
+        strip.text        = element_text(size = rel(0.8), face = "bold", hjust = 0.5),
+        strip.placement   = "outside",
+        panel.spacing.y   = unit(1.5, "lines"),
+        legend.position   = "none"
+      )
+
+   # --------------------------------------------------------------------------
+    # 2. TOTAL PLOT RENDERING (Pinned, Flattened Anchor)
     # --------------------------------------------------------------------------
     output$total_drd_plot <- renderGirafe({
-
       req(ts_data())
 
+      max_date <- max(ts_data()$Month_Date, na.rm = TRUE)
+      raw_start <- max_date %m-% months(11)
+      date_limits <- c(raw_start - lubridate::days(15), max_date + lubridate::days(15))
+
       plot_df <- ts_data() %>%
-        filter(
-          Level == "region",
-          Group_Name == "Total"
-        ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(11))) %>%
-        mutate(rate = (`Estimated DRD`/ `Total Admissions`))
+        filter(Level == "region", Group_Name == "Total") %>%
+        filter(Month_Date >= raw_start) %>%
+        mutate(rate = (`Estimated DRD` / `Total Admissions`))
 
-      validate(
-        need(nrow(plot_df) > 0, "No historical data found for the selections.")
-      )
+      validate(need(nrow(plot_df) > 0, "No historical data found."))
 
-      # --- Configuration ---
-      axis_shade <- "grey40"
-      col_width <- 20
-      num_selected <- length(input$selected_entities)
+      max_y <- max(1000 * plot_df$rate, na.rm = TRUE) * 1.35
+      if (max_y == 0) max_y <- 10
 
-      pal <- paletteer_d("lisa::ClaudeMonet_1")
-
-      # REMOVED: Dynamic calculated_height canvas blocks to stop fighting the CSS.
-      font_scalar <- 1
-      geom_text_size <- 3.8 * font_scalar
-      b_s <- 11 * font_scalar
-      label_pos <- -0.4
-
-      max_y <- max(1000*plot_df$rate, na.rm = TRUE) * 1.35
-      if (max_y == 0) {
-        max_y <- 10
-      }
-
-      # --- Clean Theme Layout using rel() mappings ---
-      title_styling <- theme(
-        plot.title = element_text(
-          face = "bold",
-          size = rel(1.2),
-          hjust = 0.5,
-          margin = margin(b = 5)
-        ),
-        plot.subtitle = element_text(
-          color = "grey40",
-          size = rel(0.8),
-          hjust = 0.5,
-          margin = margin(b = 15)
-        )
-      )
-
-      shared_theme <- theme_minimal(base_size = b_s) +
-        theme(
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.text.y = element_blank(),
-          axis.text.x = element_text(size = rel(1.1)),
-          axis.ticks.y = element_blank(),
-          axis.title = element_blank(),
-          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
-          strip.background = element_blank(),
-          strip.text = element_text(
-            size = rel(0.8),
-            face = "bold",
-            hjust = 0.5
-          ),
-          strip.placement = "outside",
-          panel.spacing.y = unit(2 / font_scalar, "lines"),
-          legend.position = "none"
-        ) +
-        title_styling
-
-      # --- Constructing the Plot ---
-      p_mort <- ggplot(
-        plot_df,
-        aes(x = Month_Date, y = round(1000*rate, 1), fill = Group_Name)
-      ) +
-        geom_col_interactive(
-          aes(
-            tooltip = paste0(
-              "<strong>",
-              Group_Name,
-              "</strong><br/>",
-              "Month: ",
-              format(Month_Date, "%B %Y"),
-              "<br/>",
-              "Estimated DRD: ",
-              scales::comma(`Estimated DRD`),
-              "<br/>",
-              "Total Admissions: ",
-              scales::comma(`Total Admissions`)
-            ),
-            data_id = paste0(Group_Name, "_", Month_Date)
-          ),
-          width = col_width
-        ) +
-        geom_text_interactive(
-          aes(
-            label = scales::comma(round(1000*rate, 1)),
-            data_id = paste0(Group_Name, "_", Month_Date)
-          ),
-          size = geom_text_size,
-          vjust = label_pos
-        ) +
-        scale_fill_manual(values = pal) +
+      p_mort <- ggplot(plot_df, aes(x = Month_Date, y = round(1000 * rate, 1), fill = Group_Name)) +
+        geom_col_interactive(aes(
+          tooltip = paste0("<strong>Total</strong><br/>Month: ", format(Month_Date, "%B %Y"), "<br/>Rate: ", round(1000 * rate, 1)),
+          data_id = paste0(Group_Name, "_", Month_Date)
+        ), width = col_width) +
+        geom_text_interactive(aes(label = scales::comma(round(1000 * rate, 1)), data_id = paste0(Group_Name, "_", Month_Date)), 
+                              size = geom_text_size, vjust = label_pos) +
+        scale_fill_manual(values = "lightblue") +
         scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
-        scale_x_date(
-          breaks = unique(plot_df$Month_Date),
-          labels = function(x) {
-            ifelse(
-              lubridate::month(x) == 1,
-              format(x, "%b\n%Y"),
-              format(x, "%b")
-            )
-          }
-        ) +
+        scale_x_date(breaks = unique(plot_df$Month_Date), limits = date_limits) +
         labs(
-          title = "Estimated monthly delay-related deaths",
-          subtitle = "(number of deaths that wouldn't have occurred if zero admission delays)",
-          x = NULL,
-          y = NULL
+          title = "Estimated monthly delay-related deaths per 1,000 admissions",
+          subtitle = "(Baseline comparison metric across all regions)",
+          x = NULL, y = NULL
         ) +
-        facet_wrap2(
-          ~Group_Name,
-          ncol = 1,
-          axes = "x",
-          strip.position = "bottom",
-          strip = strip_themed(text_x = elem_list_text(color = pal))
-        ) +
-        shared_theme
-
-            # --- Render HTML Widget ---
-      girafe(
-        ggobj = p_mort,
-        width_svg = 12.0, # Keep the "canvas" width wide
-        height_svg = 4, # Pass the calculated height
-        options = list(
-          opts_tooltip(
-            css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 6px; font-family: sans-serif;",
-            opacity = 0.95
-          ),
-          opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(saveaspng = FALSE),
-          # rescale=TRUE means it will always fill the width of your UI container,
-          # and scale the height proportionally to width_svg/height_svg.
-          opts_sizing(rescale = TRUE, width = 1)
+        facet_wrap2(~Group_Name, ncol = 1, axes = "x", strip.position = "bottom", 
+                    strip = strip_themed(text_x = elem_list_text(color = pal))) +
+        shared_theme +
+        theme(
+          plot.title = element_text(face = "bold", size = rel(1.1), hjust = 0.5, margin = margin(b = 2)),
+          plot.subtitle = element_text(color = "grey40", size = rel(0.8), hjust = 0.5, margin = margin(b = 4))
         )
-      )
 
+      # OPTIMIZED: Adjusted height_svg to 1.8 to match the tighter 25% UI frame restriction
+      girafe(ggobj = p_mort, width_svg = 12.0, height_svg = 1.8,
+             options = list(
+               opts_tooltip(css = "background-color: #1e293b; color: #ffffff; padding: 6px; font-family: sans-serif;", opacity = 0.95),
+               opts_hover(css = "fill: #93c5fd; cursor: pointer;"), 
+               opts_toolbar(saveaspng = FALSE), 
+               opts_sizing(rescale = TRUE, width = 1)
+             ))
     })
-    
+
+    # --------------------------------------------------------------------------
+    # 3. COMPARISON PLOT RENDERING (Synchronized Layout Bounds)
+    # --------------------------------------------------------------------------
     output$drd_barcode_plot <- renderGirafe({
       req(ts_data(), input$geo_level, input$selected_entities)
 
+      # Match the identical 15-day padding calculation here
+      max_date <- max(ts_data()$Month_Date, na.rm = TRUE)
+      raw_start <- max_date %m-% months(11)
+      date_limits <- c(raw_start - lubridate::days(15), max_date + lubridate::days(15))
+
       plot_df <- ts_data() %>%
-        filter(
-          Level == input$geo_level,
-          Group_Name %in% input$selected_entities
-        ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(11))) %>%
-        mutate(rate = (`Estimated DRD`/ `Total Admissions`))
+        filter(Level == input$geo_level, Group_Name %in% input$selected_entities) %>%
+        filter(Month_Date >= raw_start) %>%
+        mutate(rate = (`Estimated DRD` / `Total Admissions`))
 
-      validate(
-        need(nrow(plot_df) > 0, "No historical data found for the selections.")
-      )
+      validate(need(nrow(plot_df) > 0, "Select up to 5 elements to generate comparison panels."))
 
-      # --- Configuration ---
-      axis_shade <- "grey40"
-      col_width <- 20
-      num_selected <- length(input$selected_entities)
+      max_y <- max(1000 * plot_df$rate, na.rm = TRUE) * 1.35
+      if (max_y == 0) max_y <- 10
 
-      pal <- paletteer_d("lisa::ClaudeMonet_1")
-
-      # REMOVED: Dynamic calculated_height canvas blocks to stop fighting the CSS.
-      font_scalar <- 1
-      geom_text_size <- 3.8 * font_scalar
-      b_s <- 11 * font_scalar
-      label_pos <- -0.4
-
-      max_y <- max(1000*plot_df$rate, na.rm = TRUE) * 1.35
-      if (max_y == 0) {
-        max_y <- 10
-      }
-
-      # --- Clean Theme Layout using rel() mappings ---
-      title_styling <- theme(
-        plot.title = element_text(
-          face = "bold",
-          size = rel(1.2),
-          hjust = 0.5,
-          margin = margin(b = 5)
-        ),
-        plot.subtitle = element_text(
-          color = "grey40",
-          size = rel(0.8),
-          hjust = 0.5,
-          margin = margin(b = 15)
-        )
-      )
-
-      shared_theme <- theme_minimal(base_size = b_s) +
-        theme(
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.text.y = element_blank(),
-          axis.text.x = element_text(size = rel(1.1)),
-          axis.ticks.y = element_blank(),
-          axis.title = element_blank(),
-          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
-          strip.background = element_blank(),
-          strip.text = element_text(
-            size = rel(0.8),
-            face = "bold",
-            hjust = 0.5
-          ),
-          strip.placement = "outside",
-          panel.spacing.y = unit(2 / font_scalar, "lines"),
-          legend.position = "none"
-        ) +
-        title_styling
-
-      # --- Constructing the Plot ---
-      p_mort <- ggplot(
-        plot_df,
-        aes(x = Month_Date, y = round(1000*rate, 1), fill = Group_Name)
-      ) +
-        geom_col_interactive(
-          aes(
-            tooltip = paste0(
-              "<strong>",
-              Group_Name,
-              "</strong><br/>",
-              "Month: ",
-              format(Month_Date, "%B %Y"),
-              "<br/>",
-              "Estimated DRD: ",
-              scales::comma(`Estimated DRD`),
-              "<br/>",
-              "Total Admissions: ",
-              scales::comma(`Total Admissions`)
-            ),
-            data_id = paste0(Group_Name, "_", Month_Date)
-          ),
-          width = col_width
-        ) +
-        geom_text_interactive(
-          aes(
-            label = scales::comma(round(1000*rate, 1)),
-            data_id = paste0(Group_Name, "_", Month_Date)
-          ),
-          size = geom_text_size,
-          vjust = label_pos
-        ) +
+      p_compare <- ggplot(plot_df, aes(x = Month_Date, y = round(1000 * rate, 1), fill = Group_Name)) +
+        geom_col_interactive(aes(
+          tooltip = paste0("<strong>", Group_Name, "</strong><br/>Month: ", format(Month_Date, "%B %Y"), "<br/>Rate: ", round(1000 * rate, 1)),
+          data_id = paste0(Group_Name, "_", Month_Date)
+        ), width = col_width) +
+        geom_text_interactive(aes(label = scales::comma(round(1000 * rate, 1)), data_id = paste0(Group_Name, "_", Month_Date)), 
+                              size = geom_text_size, vjust = label_pos) +
         scale_fill_manual(values = pal) +
         scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
-        scale_x_date(
-          breaks = unique(plot_df$Month_Date),
-          labels = function(x) {
-            ifelse(
-              lubridate::month(x) == 1,
-              format(x, "%b\n%Y"),
-              format(x, "%b")
-            )
-          }
-        ) +
-        labs(
-          title = "Estimated monthly delay-related deaths",
-          subtitle = "(number of deaths that wouldn't have occurred if zero admission delays)",
-          x = NULL,
-          y = NULL
-        ) +
-        facet_wrap2(
-          ~Group_Name,
-          ncol = 1,
-          axes = "x",
-          strip.position = "bottom",
-          strip = strip_themed(text_x = elem_list_text(color = pal))
-        ) +
+        scale_x_date(breaks = unique(plot_df$Month_Date), limits = date_limits) +
+        labs(title = NULL, subtitle = NULL, x = NULL, y = NULL) + 
+        facet_wrap2(~Group_Name, ncol = 1, axes = "x", strip.position = "bottom", 
+                    strip = strip_themed(text_x = elem_list_text(color = pal))) +
         shared_theme
 
-      
-
-      # Calculate dynamic height based on number of rows
       num_selected <- length(input$selected_entities)
-      row_height <- 2.0 # Height per facet in inches
-      padding_y <- 1.5 # Space for titles, subtitles, and axes
+      dynamic_height <- 0.2 + (num_selected * 1.6)
 
-      dynamic_height <- padding_y + (num_selected * row_height)
-
-      # --- Render HTML Widget ---
-      girafe(
-        ggobj = p_mort,
-        width_svg = 12.0, # Keep the "canvas" width wide
-        height_svg = dynamic_height, # Pass the calculated height
-        options = list(
-          opts_tooltip(
-            css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 6px; font-family: sans-serif;",
-            opacity = 0.95
-          ),
-          opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(saveaspng = FALSE),
-          # rescale=TRUE means it will always fill the width of your UI container,
-          # and scale the height proportionally to width_svg/height_svg.
-          opts_sizing(rescale = TRUE, width = 1)
-        )
-      )
+      girafe(ggobj = p_compare, width_svg = 12.0, height_svg = dynamic_height,
+             options = list(
+               opts_tooltip(css = "background-color: #1e293b; color: #ffffff; padding: 6px; font-family: sans-serif;", opacity = 0.95),
+               opts_hover(css = "fill: #93c5fd; cursor: pointer;"), 
+               opts_toolbar(saveaspng = FALSE), 
+               opts_sizing(rescale = TRUE, width = 1)
+             ))
     })
 
+    # --------------------------------------------------------------------------
+    # 4. BED UTILISATION PLOT
+    # --------------------------------------------------------------------------
     output$bed_plot <- renderGirafe({
       req(ts_data(), input$geo_level, input$selected_entities)
 
       plot_df <- ts_data() %>%
-        filter(
-          Level == input$geo_level,
-          Group_Name %in% input$selected_entities
-        ) %>%
-        filter(Month_Date >= (max(Month_Date, na.rm = TRUE) %m-% months(11))) %>%
-        mutate(rate = (`Estimated DRD`/ `Total Admissions`))
+        filter(Level == input$geo_level, Group_Name %in% input$selected_entities)
 
-      validate(
-        need(nrow(plot_df) > 0, "No historical data found for the selections.")
-      )
+      validate(need(nrow(plot_df) > 0, "Select entities to display bed metrics."))
 
-      # --- Configuration ---
-      axis_shade <- "grey40"
-      col_width <- 20
-      num_selected <- length(input$selected_entities)
+      summary_df <- plot_df %>%
+        summarise(`Estimated excess bed utilisation` = mean(`Estimated excess bed utilisation`, na.rm = TRUE), .by = Group_Name)
 
-      pal <- paletteer_d("lisa::ClaudeMonet_1")
+      max_val  <- max(summary_df$`Estimated excess bed utilisation`, na.rm = TRUE)
+      y_offset <- max_val * 0.04
+      max_y_bed <- max_val * 1.25
+      if (max_y_bed == 0) max_y_bed <- 10
 
-      # REMOVED: Dynamic calculated_height canvas blocks to stop fighting the CSS.
-      font_scalar <- 1
-      geom_text_size <- 3.8 * font_scalar
-      b_s <- 11 * font_scalar
-      label_pos <- -0.4
-
-      max_y <- max(1000*plot_df$rate, na.rm = TRUE) * 1.35
-      if (max_y == 0) {
-        max_y <- 10
-      }
-
-      # --- Clean Theme Layout using rel() mappings ---
-      title_styling <- theme(
-        plot.title = element_text(
-          face = "bold",
-          size = rel(1.2),
-          hjust = 0.5,
-          margin = margin(b = 5)
-        ),
-        plot.subtitle = element_text(
-          color = "grey40",
-          size = rel(0.8),
-          hjust = 0.5,
-          margin = margin(b = 15)
-        )
-      )
-
-      shared_theme <- theme_minimal(base_size = b_s) +
-        theme(
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.text.y = element_blank(),
-          axis.text.x = element_text(size = rel(1.1)),
-          axis.ticks.y = element_blank(),
-          axis.title = element_blank(),
-          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
-          strip.background = element_blank(),
-          strip.text = element_text(
-            size = rel(0.8),
-            face = "bold",
-            hjust = 0.5
-          ),
-          strip.placement = "outside",
-          panel.spacing.y = unit(2 / font_scalar, "lines"),
-          legend.position = "none"
-        ) +
-        title_styling
-
-
-
-      # Calculate dynamic height based on number of rows
-      num_selected <- length(input$selected_entities)
-      row_height <- 2.0 # Height per facet in inches
-      padding_y <- 1.5 # Space for titles, subtitles, and axes
-
-      dynamic_height <- padding_y + (num_selected * row_height)
-
-      max_val <- max(plot_df$`Estimated excess bed utilisation`)
-      x_offset <- max_val * 0.09
-      max_x_bed <- max_val * 1.25
-
-      p_bed <- plot_df %>%
-        summarise(
-          `Estimated excess bed utilisation` = mean(
-            `Estimated excess bed utilisation`
-          ),
-          .by = Group_Name
-        ) %>%
-        ggplot(aes(x = Group_Name, y = `Estimated excess bed utilisation`)) +
-        geom_col(
-          aes(
-            x = `Estimated excess bed utilisation`,
-            fill = Group_Name,
-            color = Group_Name
-          ),
-          width = 0.3
-        ) +
-        geom_text(
-          aes(
-            x = `Estimated excess bed utilisation` + x_offset,
-            y = 1,
-            label = scales::comma(round(`Estimated excess bed utilisation`, 0))
-          ),
-          vjust = 1.3,
-          hjust = 0.5,
-          size = geom_text_size,
-          show.legend = FALSE
-        ) +
-        geom_text(
-          aes(x = `Estimated excess bed utilisation` + x_offset, y = 1),
-          label = fontawesome("fa-bed"),
-          family = "fontawesome-webfont",
-          vjust = -0.3,
-          hjust = 0.5,
-          size = geom_text_size,
-          show.legend = FALSE
-        ) +
-        labs(
-          title = "Estimated avoidable acute bed utilisation",
-          subtitle = "(average number of acute beds in use at any time attributable solely to admission delays)"
-        ) +
-        scale_y_continuous(limits = c(0, max_x_bed), expand = c(0, 0)) +
-        # scale_y_continuous(limits = c(0.5, 1.5), expand = c(0, 0)) +
+      p_bed <- ggplot(summary_df, aes(y = `Estimated excess bed utilisation`, x = Group_Name, fill = Group_Name)) +
+        geom_col(width = 0.4, color = NA) +
+        geom_text(aes(y = `Estimated excess bed utilisation`, label = scales::comma(round(`Estimated excess bed utilisation`, 0))),
+                  vjust = -1, hjust = 0.5, size = geom_text_size, show.legend = FALSE) +
         scale_fill_manual(values = pal) +
-        scale_colour_manual(values = pal) +
+        scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
+        labs(x = NULL, y = NULL) +
         theme_minimal(base_size = b_s) +
         theme(
-          panel.grid = element_blank(),
-          axis.text = element_blank(),
-          axis.title = element_blank(),
-          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
-          legend.position = "none",
-          panel.spacing.y = unit(2 / font_scalar, "lines"),
-          strip.text = element_text(
-            size = rel(0.8),
-            face = "bold",
-            color = "transparent"
-          ),
-          strip.background = element_blank()
-        ) +
-        title_styling
-
-      # --- Render HTML Widget ---
-      girafe(
-        ggobj = p_bed,
-        width_svg = 12.0, # Keep the "canvas" width wide
-        height_svg = dynamic_height, # Pass the calculated height
-        options = list(
-          opts_tooltip(
-            css = "background-color: #1e293b; color: #ffffff; border-radius: 6px; padding: 6px; font-family: sans-serif;",
-            opacity = 0.95
-          ),
-          opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(saveaspng = FALSE),
-          # rescale=TRUE means it will always fill the width of your UI container,
-          # and scale the height proportionally to width_svg/height_svg.
-          opts_sizing(rescale = TRUE, width = 1)
+          plot.margin      = aligned_margin,
+          panel.grid       = element_blank(),
+          axis.text.y      = element_blank(),
+          axis.text.x      = element_text(face = "bold", size = rel(1.0)),
+          axis.title       = element_blank(),
+          axis.line.x      = element_line(color = axis_shade, linewidth = 0.8),
+          legend.position  = "none"
         )
-      )
-    })
 
+      num_selected <- length(input$selected_entities)
+      dynamic_height <- 0.6 + (num_selected * 0.9)
+
+      girafe(ggobj = p_bed, width_svg = 12.0, height_svg = dynamic_height,
+             options = list(opts_toolbar(saveaspng = FALSE), opts_sizing(rescale = TRUE, width = 1)))
+    })
   })
 }

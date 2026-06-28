@@ -45,7 +45,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Estimated Delay-Related Deaths"),
+        # card_header("Estimated Delay-Related Deaths"),
         # REMOVED overflow: hidden !important from card_body to allow scrollbars to display naturally
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column; gap: 0; height: 100%;",
@@ -136,7 +136,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
             class = "content-caption",
             tags$strong("Figure 4: "),
             HTML(
-              "Monthly excess mortality related to delays to admission from A&E."
+              "Latest 12 months Delay-Related Deaths per 1,000 admissions. Top plot is national baseline for comparisson."
             )
           )
         )
@@ -147,7 +147,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header("Bed Utilisation Analysis"),
+        # card_header("Bed Utilisation Analysis"),
         # REMOVED overflow: hidden !important from card_body
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column;",
@@ -205,8 +205,8 @@ deepDiveServer <- function(id, ts_data, choices_list) {
     pal <- paletteer_d("lisa::ClaudeMonet_1")
 
     # BUMPED UP FONT SIZES
-    geom_text_size <- 5.0 # Increased from 3.8
-    b_s <- 14 # Increased from 11
+    geom_text_size <- 7.0 # Increased from 3.8
+    b_s <- 18 # Increased from 11
     label_pos <- -0.4
     aligned_margin <- margin(t = 10, r = 25, b = 10, l = 25, unit = "pt")
 
@@ -243,7 +243,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       plot_df <- ts_data() %>%
         filter(Level == "region", Group_Name == "Total") %>%
         filter(Month_Date >= raw_start) %>%
-        mutate(rate = (`Estimated DRD` / `Total Admissions`))
+        mutate(Group_Name == "National (baseline)", rate = (`Estimated DRD` / `Total Admissions`))
 
       validate(need(nrow(plot_df) > 0, "No historical data found."))
 
@@ -461,7 +461,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           ),
           .by = Group_Name
         ) %>%
-        mutate(Group_Name = stringr::str_wrap(Group_Name, 20))
+        mutate(Group_Name = stringr::str_wrap(Group_Name, 15))
 
       max_val <- max(
         summary_df$`Estimated excess bed utilisation`,

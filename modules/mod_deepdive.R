@@ -167,7 +167,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
             class = "content-caption",
             tags$strong("Figure 5: "),
             HTML(
-              "Average number of acute beds in use at any time attributable solely to admission delays."
+              "Delays in A&E are shown to increase acute length of stay. This bar chart displays the average number of acute beds in use at any time attributable solely to admission delays."
             )
           )
         )
@@ -205,8 +205,8 @@ deepDiveServer <- function(id, ts_data, choices_list) {
     pal <- paletteer_d("lisa::ClaudeMonet_1")
 
     # BUMPED UP FONT SIZES
-    geom_text_size <- 7.0 # Increased from 3.8
-    b_s <- 18 # Increased from 11
+    geom_text_size <- 5.0 # Increased from 3.8
+    b_s <- 14 # Increased from 11
     label_pos <- -0.4
     aligned_margin <- margin(t = 10, r = 25, b = 10, l = 25, unit = "pt")
 
@@ -243,7 +243,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       plot_df <- ts_data() %>%
         filter(Level == "region", Group_Name == "Total") %>%
         filter(Month_Date >= raw_start) %>%
-        mutate(Group_Name == "National (baseline)", rate = (`Estimated DRD` / `Total Admissions`))
+        mutate(Group_Name = "National/Baseline", rate = (`Estimated DRD` / `Total Admissions`))
 
       validate(need(nrow(plot_df) > 0, "No historical data found."))
 
@@ -291,7 +291,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         labs(
           title = "Estimated monthly delay-related deaths per 1,000 admissions",
-          subtitle = "(Baseline comparison metric across all regions)",
+          # subtitle = "(Baseline comparison metric across all regions)",
           x = NULL,
           y = NULL
         ) +
@@ -412,7 +412,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           strip.position = "bottom",
           strip = strip_themed(text_x = elem_list_text(color = pal))
         ) +
-        shared_theme
+        shared_theme 
 
       num_selected <- length(input$selected_entities)
 
@@ -461,7 +461,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           ),
           .by = Group_Name
         ) %>%
-        mutate(Group_Name = stringr::str_wrap(Group_Name, 15))
+        mutate(Group_Name = stringr::str_wrap(Group_Name, 20))
 
       max_val <- max(
         summary_df$`Estimated excess bed utilisation`,
@@ -502,7 +502,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         scale_fill_manual(values = pal) +
         scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
-        labs(x = NULL, y = NULL) +
+        labs(title = "Estimated avoidable acute bed utilisation", x = NULL, y = NULL) +
         theme_minimal(base_size = b_s) +
         theme(
           plot.margin = aligned_margin,
@@ -511,7 +511,19 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           axis.text.x = element_text(face = "bold", size = rel(1.15)),
           axis.title = element_blank(),
           axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
-          legend.position = "none"
+          legend.position = "none",
+                    plot.title = element_text(
+            face = "bold",
+            size = rel(1.3),
+            hjust = 0.5,
+            margin = margin(b = 4)
+          ),
+          plot.subtitle = element_text(
+            color = "grey40",
+            size = rel(1.0),
+            hjust = 0.5,
+            margin = margin(b = 8)
+          )
         )
 
       num_selected <- length(input$selected_entities)

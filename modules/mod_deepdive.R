@@ -45,7 +45,13 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header(tags$strong("Estimated Delay-Related Deaths")),
+        card_header(
+          style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
+          span(
+            "Estimated monthly Delay-Related deaths per 1,000 admissions", # (Or appropriate text for Card 3)
+            style = "font-weight: bold; font-size: 0.8vw; margin: 0;"
+          )
+        ),
         # REMOVED overflow: hidden !important from card_body to allow scrollbars to display naturally
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column; gap: 0; height: 100%;",
@@ -147,7 +153,13 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        card_header(tags$strong("Estimated avoidable acute bed utilisation")),
+        card_header(
+          style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
+          span(
+            "Estimated avoidable acute bed utilisation", # (Or appropriate text for Card 3)
+            style = "font-weight: bold; font-size: 0.8vw; margin: 0;"
+          )
+        ),
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column;",
           div(
@@ -244,7 +256,11 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       plot_df <- ts_data() %>%
         filter(Level == "region", Group_Name == "Total") %>%
         filter(Month_Date >= raw_start) %>%
-        mutate(Group_Name = "National/Baseline", rate = (`Estimated DRD` / `Total Admissions`))
+        mutate(
+          Group_Name = "National/Baseline",
+          rate = (`Estimated DRD` / `Total Admissions`)
+        ) %>%
+        mutate(rate_plot = round(1000 * rate, 1))
 
       validate(need(nrow(plot_df) > 0, "No historical data found."))
 
@@ -255,7 +271,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
 
       p_mort <- ggplot(
         plot_df,
-        aes(x = Month_Date, y = round(1000 * rate, 1), fill = Group_Name)
+        aes(x = Month_Date, y = rate_plot, fill = Group_Name)
       ) +
         geom_col_interactive(
           aes(
@@ -263,7 +279,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
               "<strong>Total</strong><br/>Month: ",
               format(Month_Date, "%B %Y"),
               "<br/>Rate: ",
-              round(1000 * rate, 1)
+              rate_plot
             ),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
@@ -271,7 +287,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         geom_text_interactive(
           aes(
-            label = scales::comma(round(1000 * rate, 1)),
+            label = scales::comma(rate_plot, accuracy = 0.1),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
           size = geom_text_size,
@@ -337,7 +353,8 @@ deepDiveServer <- function(id, ts_data, choices_list) {
               'zoom_rect',
               'zoom_reset',
               'fullscreen'
-            )),
+            )
+          ),
           opts_sizing(rescale = TRUE, width = 1)
         )
       )
@@ -394,7 +411,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         geom_text_interactive(
           aes(
-            label = scales::comma(round(1000 * rate, 1)),
+            label = scales::comma(round(1000 * rate, 1), accuracy = 0.1),
             data_id = paste0(Group_Name, "_", Month_Date)
           ),
           size = geom_text_size,
@@ -421,7 +438,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           strip.position = "bottom",
           strip = strip_themed(text_x = elem_list_text(color = pal))
         ) +
-        shared_theme 
+        shared_theme
 
       num_selected <- length(input$selected_entities)
 
@@ -447,7 +464,8 @@ deepDiveServer <- function(id, ts_data, choices_list) {
               'zoom_rect',
               'zoom_reset',
               'fullscreen'
-            )),
+            )
+          ),
           opts_sizing(rescale = FALSE, width = 1)
         )
       )
@@ -521,8 +539,9 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
         labs(
           # title = "Estimated avoidable acute bed utilisation",
-           x = NULL, 
-           y = NULL) +
+          x = NULL,
+          y = NULL
+        ) +
         theme_minimal(base_size = b_s) +
         theme(
           plot.margin = aligned_margin,
@@ -532,7 +551,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           axis.title = element_blank(),
           axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
           legend.position = "none",
-                    plot.title = element_text(
+          plot.title = element_text(
             face = "bold",
             size = rel(1.3),
             hjust = 0.5,
@@ -546,12 +565,12 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           )
         )
 
-girafe(
-  ggobj = p_bed,
-  width_svg = 12.0,
-  height_svg = 10, # Fixed height ratio instead of dynamic
-  options = list(
-    opts_toolbar(
+      girafe(
+        ggobj = p_bed,
+        width_svg = 12.0,
+        height_svg = 10, # Fixed height ratio instead of dynamic
+        options = list(
+          opts_toolbar(
             hidden = c(
               'lasso_select',
               'lasso_deselect',
@@ -559,10 +578,11 @@ girafe(
               'zoom_rect',
               'zoom_reset',
               'fullscreen'
-            )),
-    opts_sizing(rescale = TRUE, width = 1)
-  )
-)
+            )
+          ),
+          opts_sizing(rescale = TRUE, width = 1)
+        )
+      )
     })
   })
 }

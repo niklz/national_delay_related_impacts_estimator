@@ -386,3 +386,15 @@ input.airDatepickerInput:focus {
     padding: 0px !important;
 }
 
+.text-center {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  height: 100%;
+}
+
+.text-center p {
+  margin: 0 !important;
+}

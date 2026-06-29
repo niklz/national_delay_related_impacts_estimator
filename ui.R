@@ -20,21 +20,21 @@ ui <- page_navbar(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
   ),
 
-  # glanceUI(
-  #   id = "at_a_glance",
-  #   min_date = min_date,
-  #   max_date = max_date,
-  #   SPINNER_TYPE = SPINNER_TYPE,
-  #   title = PANEL_TITLE_1
-  # ),
+  glanceUI(
+    id = "at_a_glance",
+    min_date = min_date,
+    max_date = max_date,
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_1
+  ),
 
-  # dashboardUI(
-  #   id = "main",
-  #   min_date = min_date,
-  #   max_date = max_date,
-  #   SPINNER_TYPE = SPINNER_TYPE,
-  #   title = PANEL_TITLE_2
-  # ),
+  dashboardUI(
+    id = "main",
+    min_date = min_date,
+    max_date = max_date,
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_2
+  ),
 
   deepDiveUI(
     id = "deep_dive",

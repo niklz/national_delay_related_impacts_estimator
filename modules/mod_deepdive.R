@@ -14,7 +14,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # CARD 1: Controls & Selectors
       # ==========================================
       card(
-        card_header("Filter Options"),
+        card_header("Select Region / ICB / Trust to compare:"),
         card_body(
           selectInput(
             inputId = ns("geo_level"),
@@ -44,7 +44,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # CARD 2: Timeseries Analysis Stack
       # ==========================================
       card(
-        full_screen = TRUE,
+        # full_screen = TRUE,
         card_header(
           style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
           span(
@@ -152,7 +152,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # CARD 3: Avoidable Bed Utilisation Chart
       # ==========================================
       card(
-        full_screen = TRUE,
+        # full_screen = TRUE,
         card_header(
           style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
           span(
@@ -180,7 +180,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
             class = "content-caption",
             tags$strong("Figure 5: "),
             HTML(
-              "Delays in A&E are shown to increase acute length of stay. This bar chart displays the average number of acute beds in use at any time attributable solely to admission delays."
+              "Delays in A&E are shown to increase acute length of stay. This bar chart displays the average number of acute beds in use at any time over the last 12-months attributable solely to admission delays."
             )
           )
         )
@@ -515,7 +515,14 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           fill = Group_Name
         )
       ) +
-        geom_col(width = 0.4, color = NA) +
+        geom_col_interactive(
+          aes(tooltip = paste0(
+              "<strong>",
+              Group_Name,
+              "</strong><br>Estimated excess beds utilised: ",
+              round(`Estimated excess bed utilisation`, 0)
+            )),
+          width = 0.4, color = NA) +
         geom_text(
           aes(
             y = `Estimated excess bed utilisation`,
@@ -570,6 +577,11 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         width_svg = 12.0,
         height_svg = 10, # Fixed height ratio instead of dynamic
         options = list(
+          opts_tooltip(
+            css = "background-color: #1e293b; color: #ffffff; padding: 6px; font-family: sans-serif;",
+            opacity = 0.95
+          ),
+          opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
           opts_toolbar(
             hidden = c(
               'lasso_select',

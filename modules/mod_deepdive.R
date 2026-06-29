@@ -45,12 +45,13 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        # card_header("Estimated Delay-Related Deaths"),
+        card_header(tags$strong("Estimated Delay-Related Deaths")),
         # REMOVED overflow: hidden !important from card_body to allow scrollbars to display naturally
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column; gap: 0; height: 100%;",
 
-          tags$style(HTML("
+          tags$style(HTML(
+            "
             /* Pinned Total view constraints */
             .total-container .html-widget.girafe, 
             .total-container .html-widget.girafe svg { 
@@ -74,9 +75,7 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
               height: auto !important;
               width: 100% !important;
             }
-            /* --- ADDED OVERRIDES TO CANCEL GLOBAL CSS ASPECT RATIO --- */
-            .comparison-container .html-widget.girafe svg,
-            .bed-container .html-widget.girafe svg { 
+            .comparison-container .html-widget.girafe svg { 
               height: auto !important;
               max-height: none !important;
               aspect-ratio: auto !important;
@@ -97,7 +96,8 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
               height: auto !important;
               width: 100% !important;
             }
-          ")),
+          "
+          )),
 
           # Pinned Top Row: Allocated exactly 33% of card height (Never Scrolls)
           div(
@@ -147,15 +147,16 @@ deepDiveUI <- function(id, SPINNER_TYPE, title) {
       # ==========================================
       card(
         full_screen = TRUE,
-        # card_header("Bed Utilisation Analysis"),
-        # REMOVED overflow: hidden !important from card_body
+        card_header(tags$strong("Estimated avoidable acute bed utilisation")),
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column;",
           div(
             class = "bed-container",
-            style = "flex: 1 1 auto; width: 100%; overflow-y: auto; overflow-x: hidden;",
+            # Simplified flex styling to fill the card
+            style = "flex: 1; min-height: 0; width: 100%;",
             withSpinner(
-              girafeOutput(ns("bed_plot"), width = "100%", height = "auto"),
+              # Changed height from "auto" to "100%"
+              girafeOutput(ns("bed_plot"), width = "100%", height = "100%"),
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
@@ -276,7 +277,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           size = geom_text_size,
           vjust = label_pos
         ) +
-        scale_fill_manual(values = "lightblue") +
+        scale_fill_manual(values = "cornsilk4") +
         scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
         scale_x_date(
           breaks = unique(plot_df$Month_Date),
@@ -290,7 +291,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           limits = date_limits
         ) +
         labs(
-          title = "Estimated monthly delay-related deaths per 1,000 admissions",
+          # title = "Estimated monthly delay-related deaths per 1,000 admissions",
           # subtitle = "(Baseline comparison metric across all regions)",
           x = NULL,
           y = NULL
@@ -300,7 +301,7 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           ncol = 1,
           axes = "x",
           strip.position = "bottom",
-          strip = strip_themed(text_x = elem_list_text(color = "lightblue"))
+          strip = strip_themed(text_x = elem_list_text(color = "cornsilk4"))
         ) +
         shared_theme +
         theme(
@@ -328,7 +329,15 @@ deepDiveServer <- function(id, ts_data, choices_list) {
             opacity = 0.95
           ),
           opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(saveaspng = FALSE),
+          opts_toolbar(
+            hidden = c(
+              'lasso_select',
+              'lasso_deselect',
+              'zoom_onoff',
+              'zoom_rect',
+              'zoom_reset',
+              'fullscreen'
+            )),
           opts_sizing(rescale = TRUE, width = 1)
         )
       )
@@ -430,7 +439,15 @@ deepDiveServer <- function(id, ts_data, choices_list) {
             opacity = 0.95
           ),
           opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(saveaspng = FALSE),
+          opts_toolbar(
+            hidden = c(
+              'lasso_select',
+              'lasso_deselect',
+              'zoom_onoff',
+              'zoom_rect',
+              'zoom_reset',
+              'fullscreen'
+            )),
           opts_sizing(rescale = FALSE, width = 1)
         )
       )
@@ -502,7 +519,10 @@ deepDiveServer <- function(id, ts_data, choices_list) {
         ) +
         scale_fill_manual(values = pal) +
         scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
-        labs(title = "Estimated avoidable acute bed utilisation", x = NULL, y = NULL) +
+        labs(
+          # title = "Estimated avoidable acute bed utilisation",
+           x = NULL, 
+           y = NULL) +
         theme_minimal(base_size = b_s) +
         theme(
           plot.margin = aligned_margin,
@@ -526,18 +546,23 @@ deepDiveServer <- function(id, ts_data, choices_list) {
           )
         )
 
-      num_selected <- length(input$selected_entities)
-      dynamic_height <- 1.0 + (num_selected * 1.2)
-
-      girafe(
-        ggobj = p_bed,
-        width_svg = 12.0,
-        height_svg = dynamic_height,
-        options = list(
-          opts_toolbar(saveaspng = FALSE),
-          opts_sizing(rescale = TRUE, width = 1)
-        )
-      )
+girafe(
+  ggobj = p_bed,
+  width_svg = 12.0,
+  height_svg = 10, # Fixed height ratio instead of dynamic
+  options = list(
+    opts_toolbar(
+            hidden = c(
+              'lasso_select',
+              'lasso_deselect',
+              'zoom_onoff',
+              'zoom_rect',
+              'zoom_reset',
+              'fullscreen'
+            )),
+    opts_sizing(rescale = TRUE, width = 1)
+  )
+)
     })
   })
 }

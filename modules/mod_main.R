@@ -5,6 +5,34 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
     title = title,
     icon = icon("pie-chart"),
 
+    card(
+      fill = FALSE,
+      style = "background-color: #F4F6F9;
+         /*border: 1px solid #e2e8f0;*/
+         box-shadow: none;",
+
+      card_body(
+        fill = FALSE,
+        style = "padding: 0.75rem 1rem;", # Snug padding (Top/Bottom, Left/Right)
+
+        tags$p(
+          style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
+          "This section displays the ",
+          tags$strong("delay-related death (*)"),
+          tags$strong(
+            " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
+          ),
+          " at 3 operational levels: a ",
+          tags$strong("Regional"),
+          " time-series, a geospatial distribution at ",
+          tags$strong("ICB / Cluster level"),
+          ", and a funnel plot at ",
+          tags$strong("Trust level"),
+          ". Chart views can be modified using the selectors at the bottom of the page.",
+        )
+      )
+    ),
+
     layout_columns(
       col_widths = c(4, 4, 4),
 
@@ -14,7 +42,30 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
         card_body(
           class = "d-flex flex-column align-items-stretch content-card-body",
           style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
-
+          div(
+            style = "flex: 0 1 auto; width: 100%; aspect-ratio: 6 / 5; overflow: hidden;",
+            # DEPRECATED chart title as div element 
+          #   h4(
+          #     style = "text-align: center !important; font-weight: 600;",
+          #     "DRD* rate† per Region"
+          #   ),
+            withSpinner(
+              girafeOutput(
+                ns("time_series_plot"),
+                width = "100%",
+                height = "100%"
+              ),
+              type = SPINNER_TYPE,
+              color = "#003087",
+              size = 0.7
+            )
+          ),
+          #   # CAPTION BLOCK
+          #   div(
+          #     class = "content-caption",
+          #     tags$strong("Figure 1: "),
+          #     "Regional time-series of delay-related deaths per 1000 admissions."
+          #   )
           div(
             class = "slider-breathing-room",
             sliderInput(
@@ -27,25 +78,6 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
               step = 30.5,
               width = "100%"
             )
-          ),
-          div(
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
-            withSpinner(
-              girafeOutput(
-                ns("time_series_plot"),
-                width = "100%",
-                height = "100%"
-              ),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          ),
-          # CAPTION BLOCK
-          div(
-            class = "content-caption",
-            tags$strong("Figure 1: "), 
-            "Regional time-series of delay-related deaths per 1000 admissions."
           )
         )
       ),
@@ -56,7 +88,15 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
         card_body(
           class = "d-flex flex-column align-items-stretch content-card-body",
           style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
-
+          div(
+            style = "flex: 0 1 auto; width: 100%; aspect-ratio: 6 / 5; overflow: hidden;",
+            withSpinner(
+              girafeOutput(ns("choropleth"), width = "100%", height = "100%"),
+              type = SPINNER_TYPE,
+              color = "#003087",
+              size = 0.7
+            )
+          ),
           div(
             class = "choropleth-control-header",
             airDatepickerInput(
@@ -72,22 +112,13 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
               addon = "none",
               width = "100%"
             )
-          ),
-          div(
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
-            withSpinner(
-              girafeOutput(ns("choropleth"), width = "100%", height = "100%"),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          ),
-          # CAPTION BLOCK
-          div(
-            class = "content-caption",
-            tags$strong("Figure 2: "), 
-            "Geographic distribution of delay-related deaths per thousand admissions."
           )
+          # # CAPTION BLOCK
+          # div(
+          #   class = "content-caption",
+          #   tags$strong("Figure 2: "),
+          #   "Geographic distribution of delay-related deaths per thousand admissions."
+          # )
         )
       ),
 
@@ -97,7 +128,15 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
         card_body(
           class = "d-flex flex-column align-items-stretch content-card-body",
           style = "overflow: hidden !important; padding: 1rem; min-height: 0 !important;",
-
+          div(
+            style = "flex: 0 1 auto; width: 100%; aspect-ratio: 6 / 5; overflow: hidden;",
+            withSpinner(
+              girafeOutput(ns("funnel_plot"), width = "100%", height = "100%"),
+              type = SPINNER_TYPE,
+              color = "#003087",
+              size = 0.7
+            )
+          ),
           div(
             class = "funnel-control-header",
             style = "flex-wrap: wrap;",
@@ -146,22 +185,13 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
                 )
               )
             )
-          ),
-          div(
-            style = "flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;",
-            withSpinner(
-              girafeOutput(ns("funnel_plot"), width = "100%", height = "100%"),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          ),
-          # CAPTION BLOCK
-          div(
-            class = "content-caption",
-            tags$strong("Figure 3: "), 
-            "Funnel plot of delay-related deaths versus montly admissions at Trust-level."
           )
+          # # CAPTION BLOCK
+          # div(
+          #   class = "content-caption",
+          #   tags$strong("Figure 3: "),
+          #   "Funnel plot of delay-related deaths versus montly admissions at Trust-level."
+          # )
         )
       )
     )

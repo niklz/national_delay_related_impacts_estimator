@@ -21,6 +21,8 @@ library(ggtext)
 library(paletteer)
 library(ggh4x)
 library(bsicons)
+library(showtext)
+
 
 
 # UI params
@@ -35,6 +37,11 @@ POS_CLR_LGT <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter
 PANEL_TITLE_1 <- "At a glance"
 PANEL_TITLE_2 <- "Graphical overview & outlier analysis"
 PANEL_TITLE_3 <- "System comparison: delay-related deaths & bed utilisation"
+
+# ggplot2 font
+font_add_google("Open Sans", "open_sans")
+showtext_auto()
+theme_set(theme_minimal(base_family = "open_sans"))
 
 
 # Utils

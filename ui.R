@@ -34,13 +34,13 @@ ui <- page_navbar(
     max_date = max_date,
     SPINNER_TYPE = SPINNER_TYPE,
     title = PANEL_TITLE_2
-  ),
+  )#,
 
-  deepDiveUI(
-    id = "deep_dive",
-    SPINNER_TYPE = SPINNER_TYPE,
-    title = PANEL_TITLE_3
-  ),
+  # deepDiveUI(
+  #   id = "deep_dive",
+  #   SPINNER_TYPE = SPINNER_TYPE,
+  #   title = PANEL_TITLE_3
+  # ),
   
-  aboutUI(id = "about_page")
+  # aboutUI(id = "about_page")
 )

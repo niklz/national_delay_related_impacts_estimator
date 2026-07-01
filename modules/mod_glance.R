@@ -8,10 +8,31 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
   nav_panel(
     title = title,
     icon = icon("table"),
-            tags$p(
-        style = "margin: 0; padding-top: 0rem; font-size: 14px; color: #555; line-height: 1.4;",
-        str_c("Latest data from: ", format(report_date, "%B %Y"))
-      ),
+    card(
+      fill = FALSE, 
+      style = "background-color: #F4F6F9;
+         /*border: 1px solid #e2e8f0;*/
+         box-shadow: none;",
+
+      card_body(
+        fill = FALSE, 
+        style = "padding: 0.75rem 1rem;", # Snug padding (Top/Bottom, Left/Right)
+
+        tags$p(
+          style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
+          "This section displays the total monthly acute emergency admissions via type-1 A&E deparments per Trust for the latest reporting period (",
+          tags$strong(format(report_date, "%B %Y")),
+          "), alongside the proportion of patients who waited over four hours for admission. It estimates the impact of these delays on the admitted cohort using ",
+          tags$strong("Delay-Related Deaths (*)"),
+          ", expressed both as a ",
+          tags$strong("rate per 1,000 admissions (†)"),
+          " and as a total monthly count. Additionally, the ",
+          tags$strong("3-month trend DRD trend (‡)"),
+          " is modeled using regression on seasonally adjusted data. Finally, the top improving and worsening trusts are ranked based on this trend."
+        )
+      )
+    ),
+
 
     # Main layout containing the two cards
     layout_columns(
@@ -33,16 +54,16 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
               color = "#003087",
               size = 0.7
             )
-          ),
+          ) #,
 
-          # CAPTION BLOCK (Unchanged)
-          div(
-            class = "content-caption",
-            tags$strong("Table 1: "),
-            HTML(
-              "Type-1 A&E admissions and wait times by Trust, ranked by the number of DRD¹ per thousand admissions. For each Trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
-            )
-          )
+          # # CAPTION BLOCK (Unchanged)
+          # div(
+          #   class = "content-caption",
+          #   tags$strong("Table 1: "),
+          #   HTML(
+          #     "Type-1 A&E admissions and wait times by Trust, ranked by the number of DRD¹ per thousand admissions. For each Trust, the estimated excess deaths per thousand admissions (reflecting the impact of these delays) are shown alongside the raw DRD¹ in brackets."
+          #   )
+          # )
         )
       ),
 
@@ -75,29 +96,29 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
                 size = 0.7
               )
             ),
-          ),
+          ) #,
 
           # SHARED CAPTION BLOCK (Unchanged)
-          div(
-            class = "content-caption",
-            tags$strong("Table 2 & 3: "),
-            "Top improving and worsening Trusts, ranked by percentage change in DRD¹ per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
-          )
+          # div(
+          #   class = "content-caption",
+          #   tags$strong("Table 2 & 3: "),
+          #   "Top improving and worsening Trusts, ranked by percentage change in DRD¹ per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
+          # )
         )
       )
-    ),
+    ) #,
 
-    # ==========================================
-    # GLOBAL FOOTNOTE SECTION
-    # ==========================================
-    div(
-      class = "global-footnotes",
-      tags$hr(),
-      tags$p(
-        tags$strong("¹ DRD:"),
-        " Delay-related deaths"
-      )
-    )
+    # # ==========================================
+    # # GLOBAL FOOTNOTE SECTION
+    # # ==========================================
+    # div(
+    #   class = "global-footnotes",
+    #   tags$hr(),
+    #   tags$p(
+    #     tags$strong("¹ DRD:"),
+    #     " Delay-related deaths"
+    #   )
+    # )
   )
 }
 
@@ -195,7 +216,7 @@ glanceServer <- function(id) {
           `Estimated DRD` = colDef(show = FALSE),
 
           `Estimated deaths per thousand admissions` = colDef(
-            name = "Estimated DRD¹: Rate per thousand admissions (Total)",
+            name = "Estimated DRD*: Rate† (Total)",
             minWidth = 150,
             headerStyle = list(
               whiteSpace = "normal",
@@ -230,7 +251,7 @@ glanceServer <- function(id) {
           ),
 
           Trend = colDef(
-            name = "Trend in DRD¹ (last 3 months)",
+            name = "DRD* trend‡",
             minWidth = 100,
             headerStyle = list(
               whiteSpace = "normal",
@@ -292,7 +313,7 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Relative increase of DRD¹ over 3 months",
+            name = "Top worsening ‡",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",
@@ -336,7 +357,7 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
           `Percent change (DRD)` = colDef(
-            name = "Relative decrease of DRD¹ over 3 months",
+            name = "Top improving ‡",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",

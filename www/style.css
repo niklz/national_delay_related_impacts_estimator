@@ -48,6 +48,7 @@
     padding: 1rem !important; 
     display: flex !important; 
     flex-direction: column !important; 
+    justify-content: center !important; 
     overflow: hidden !important; 
     height: 100% !important;
 }

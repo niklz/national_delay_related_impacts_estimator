@@ -44,205 +44,6 @@ round_denom <- function(val, round = 25) {
 # ==========================================
 # PLOT FUNCTIONS
 # ==========================================
-funnel_plot <- function(
-  data,
-  base = 11,
-  wrap = 40,
-  log_x = FALSE,
-  zebra = TRUE,
-  over_dispersion = 3,
-  sigmas = seq(0.5, 3, by = 0.5)
-) {
-
-  plot_data <- data %>%
-    filter(ae_type == "Type 1 (Major)", org != "Total") #%>%
-    # dplyr::filter(!is.na(excess_mort), !is.na(tot_ae_adm), !is.na(org)) %>%
-    # dplyr::filter(tot_ae_adm > 0, excess_mort <= tot_ae_adm)
-
-  if (nrow(plot_data) == 0) {
-    return(ggplot() + theme_minimal())
-  }
-
-  sum_excess <- sum(plot_data$excess_mort)
-  sum_adm <- sum(plot_data$tot_ae_adm)
-  mu <- sum_excess / sum_adm
-
-  plot_data <- plot_data %>%
-    mutate(
-      rate = excess_mort / tot_ae_adm,
-      z_score = (rate - mu) / sqrt(mu * (1 - mu) / tot_ae_adm),
-      precise_denom = round(1 / rate),
-      tooltip = paste0(
-        org,
-        ", ",
-        format(period, "%Y %B"),
-        "\n",
-        scales::comma(round(excess_mort)),
-        " delay-related deaths\n",
-       "Rate: ", per_k_labeller(rate, newline = FALSE)
-      )
-    )
-
-  x_min <- min(plot_data$tot_ae_adm, na.rm = TRUE)
-  x_max <- max(plot_data$tot_ae_adm, na.rm = TRUE)
-  y_limit <- max(max(plot_data$rate, na.rm = TRUE) * 1.2, 0.02)
-  x_limit_extended <- x_max * 1.02
-
-  x_seq <- seq(x_min * 0.4, x_max * 1.05, length.out = 250)
-  sorted_sigmas <- sort(unique(sigmas))
-
-  logit_mu <- log(mu / (1 - mu))
-
-  funnel_lines <- tidyr::crossing(
-    tot_ae_adm = x_seq,
-    z_val = sorted_sigmas
-  ) %>%
-    mutate(
-      logit_se = sqrt(over_dispersion) * sqrt(1 / (tot_ae_adm * mu * (1 - mu))),
-      upper = 1 / (1 + exp(-(logit_mu + z_val * logit_se))),
-      sigma = factor(z_val)
-    ) %>%
-    arrange(sigma, tot_ae_adm)
-
-  funnel_ribbons <- tibble()
-  if (zebra && length(sorted_sigmas) >= 2) {
-    stripe_indices <- seq(1, length(sorted_sigmas) - 1, by = 2)
-
-    logit_se_seq <- sqrt(over_dispersion) * sqrt(1 / (x_seq * mu * (1 - mu)))
-
-    funnel_ribbons <- lapply(stripe_indices, function(i) {
-      z_lower <- sorted_sigmas[i]
-      z_upper <- sorted_sigmas[i + 1]
-
-      tibble(
-        tot_ae_adm = x_seq,
-        ymin = pmin(
-          1 / (1 + exp(-(logit_mu + z_lower * logit_se_seq))),
-          y_limit
-        ),
-        ymax = pmin(
-          1 / (1 + exp(-(logit_mu + z_upper * logit_se_seq))),
-          y_limit
-        ),
-        group_id = factor(paste0(z_lower, "-", z_upper))
-      )
-    }) %>%
-      dplyr::bind_rows()
-  }
-
-  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
-
-  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
-
-  if (zebra && nrow(funnel_ribbons) > 0) {
-    p <- p +
-      ggplot2::geom_ribbon(
-        data = funnel_ribbons,
-        ggplot2::aes(
-          x = tot_ae_adm,
-          ymin = ymin,
-          ymax = ymax,
-          group = group_id
-        ),
-        inherit.aes = FALSE,
-        fill = "grey40",
-        alpha = 0.05
-      )
-  }
-
-  p <- p +
-    ggplot2::geom_line(
-      data = funnel_lines,
-      ggplot2::aes(x = tot_ae_adm, y = upper, group = sigma),
-      alpha = 0.6,
-      color = "grey50",
-      linetype = "dashed",
-      inherit.aes = FALSE
-    ) +
-    ggplot2::scale_alpha_continuous(range = c(0.6, 0.15), guide = "none") +
-    ggplot2::geom_hline(yintercept = mu, color = "steelblue", alpha = 0.5) +
-
-    ggplot2::annotate(
-      "text",
-      x = x_max,
-      y = mu,
-      colour = "steelblue",
-      label = paste0("National average\n(", rate_labeller(mu), ")"),
-      hjust = 1.05,
-      vjust = 0.5,
-      size = base * 0.8 / 2.83464,
-      fontface = "italic"
-    ) +
-    ggplot2::annotate(
-      "text",
-      x = Inf,
-      y = Inf,
-      colour = "grey60",
-      label = str_wrap(
-        "Dashed lines represent control limits, which define the range of expected variation with hospital volume.",
-        wrap * 0.6
-      ),
-      hjust = 1.05,
-      vjust = 1.5,
-      size = base * 0.8 / 2.83464,
-      fontface = "italic"
-    ) +
-    ggiraph::geom_point_interactive(
-      aes(tooltip = tooltip, col = rate),
-      size = 2.5,
-      alpha = 0.6
-    ) +
-    ggplot2::labs(
-      title = str_wrap("Delay-related deaths per Trust", wrap),
-      x = "Total type-1 A&E admissions",
-      y = NULL,
-      colour = str_wrap("Mortality risk rate", 60)
-    ) +
-    scale_y_continuous(limits = c(0, y_limit), labels = \(x) {
-      str_c(1000 * x)
-    }) +
-    scale_colour_stepsn(
-      n.breaks = 5,
-      colors = as.character(base_colors),
-      labels = per_k_labeller,
-      guide = guide_colorsteps(
-        title.position = "top",
-        even.steps = TRUE,      # MATCHED WITH MAP
-        show.limits = FALSE,    # MATCHED WITH MAP
-        barheight = unit(0.04, 'npc'),
-        barwidth = unit(0.9, 'npc')
-      )
-    ) +
-    ggplot2::theme_minimal(base_size = base) +
-    ggplot2::theme(
-      plot.title = element_text(hjust = 0.5),
-      plot.margin = margin(5, 5, 5, 5),
-      axis.title.y = element_text(vjust = 2.5, margin = margin(r = 10)),
-      legend.position = "bottom",
-      legend.title = element_text(hjust = 0.5, size = base * 0.9),
-      legend.text = element_text(size = base * 0.8)
-    )
-
-  if (log_x) {
-    p <- p +
-      scale_x_log10(labels = scales::comma) +
-      ggplot2::coord_cartesian(
-        xlim = c(max(10, x_min * 0.5), x_limit_extended),
-        ylim = c(0, y_limit),
-        clip = "on"
-      )
-  } else {
-    p <- p +
-      scale_x_continuous(labels = scales::comma) +
-      ggplot2::coord_cartesian(
-        xlim = c(x_min, x_limit_extended),
-        ylim = c(0, y_limit),
-        clip = "on"
-      )
-  }
-
-  return(p)
-}
 
 time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
   
@@ -297,12 +98,12 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
     ) +
     scale_y_continuous(labels = \(x) str_c(x)) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
-    labs(title = str_wrap("Delay-related deaths per thousand admissions per Region", wrap), x = NULL, y = NULL) +
+    labs(title = str_wrap("DRD* rate† per Region", wrap), x = NULL, y = NULL) +
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
-      plot.title = element_text(hjust = 0.5),
-      plot.margin = margin(5, 5, 5, 5), 
+      plot.title = element_text(hjust = 0.5, vjust = 5),
+      plot.margin = margin(8, 5, 5, 5), 
       panel.grid.minor.x = element_line(color = "#e9ecef", linewidth = 0.5),
       panel.grid.major.x = element_line(color = "#ced4da", linewidth = 0.5)
     )
@@ -351,7 +152,7 @@ funnel_plot <- function(
       
       point_stroke = ifelse(is_highlighted, 1.8, 0.2),
       point_size   = ifelse(is_highlighted, 3.5, 2.5),
-      point_alpha  = ifelse(is_highlighted, 1.0, 0.6),
+      point_alpha  = ifelse(is_highlighted, 1.0, 0.8),
       
       tooltip = paste0(
         org, ", ", format(period, "%Y %B"), "\n",
@@ -371,8 +172,8 @@ funnel_plot <- function(
   # ============================================================================
 
   # 3. Canvas Assembly Pipeline
-  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
-
+  # base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+  base_colors <- monochromeR::generate_palette(colour = "#991b1b", 5, modification = "go_lighter") %>% rev()
   p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = tot_ae_adm, y = rate))
 
   # Use the pre-computed ribbons directly from global.R
@@ -434,7 +235,7 @@ funnel_plot <- function(
     ggplot2::scale_alpha_identity(guide = "none") +
     
     ggplot2::labs(
-      title = str_wrap("Delay-related deaths per thousand admissions per Trust", wrap),
+      title = str_wrap("DRD* rate† per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
       fill = str_wrap("Mortality risk rate", 60) 
@@ -447,13 +248,13 @@ funnel_plot <- function(
       limits = c(0, y_limit), 
       guide = ggplot2::guide_colorsteps(
         title.position = "top", even.steps = TRUE, show.limits = FALSE,
-        barheight = unit(0.04, 'npc'), barwidth = unit(0.9, 'npc')
+        barheight = unit(0.04, 'npc'), barwidth = unit(0.75, 'npc')
       )
     ) +
     ggplot2::theme_minimal(base_size = base) +
     ggplot2::theme(
-      plot.title = element_text(hjust = 0.5),
-      plot.margin = margin(5, 5, 5, 5),
+      plot.title = element_text(vjust = 5, hjust = 0.5),
+      plot.margin = margin(12, 5, 5, 12),
       axis.title.y = element_text(vjust = 2.5, margin = margin(r = 10)),
       legend.position = "bottom",
       legend.title = element_text(hjust = 0.5, size = base * 0.9),
@@ -510,7 +311,8 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
   # pal_func <- colorRampPalette(as.character(base_colors))
   # pal <- pal_func(length(unique_bins))
 
-  base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+  # base_colors <- paletteer::paletteer_d("beyonce::X41", direction = -1)
+  base_colors <- monochromeR::generate_palette(colour = "#991b1b", 5, modification = "go_lighter") %>% rev()
   rate_breaks <- c(1 / 400, 1 / 200, 1 / 150, 1 / 100, 1 / 75, 1 / 50)
 
   p <- ggplot(plot_data, aes(fill = 1 / denom)) +
@@ -531,17 +333,17 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
         show.limits = FALSE,
         title.position = "top",
         barheight = unit(0.04, 'npc'),
-        barwidth = unit(0.9, 'npc')
+        barwidth = unit(0.85, 'npc')
       )
     ) +
     labs(
-      title = str_wrap("Delay-related deaths per thousand admissions, per ICB/Cluster", wrap),
+      title = str_wrap("DRD* rate† per ICB / Cluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +
     theme(
-      plot.margin = margin(5, 5, 5, 5), # Removed unneeded padding bounding the maps
-      plot.title = element_text(hjust = 0.5),
+      plot.margin = margin(8, 5, 5, 5), # Removed unneeded padding bounding the maps
+      plot.title = element_text(vjust = 5, hjust = 0.5),
       legend.position = "bottom",
       legend.title = element_text(
         hjust = 0.5,

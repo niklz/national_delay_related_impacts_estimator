@@ -7,6 +7,6 @@ server <- function(input, output, session) {
 
   glanceServer("at_a_glance")
   dashboardServer("main", max_date = max_date)
-  deepDiveServer(id = "deep_dive", ts_data = historical_data_r, choices_list = geo_choices)
-  aboutServer(id = "about_page")
+  # deepDiveServer(id = "deep_dive", ts_data = historical_data_r, choices_list = geo_choices)
+  # aboutServer(id = "about_page")
 }

@@ -238,7 +238,7 @@ funnel_plot <- function(
       title = str_wrap("DRD* rate† per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
-      fill = str_wrap("Mortality risk rate", 60) 
+      fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
     ) +
     
     ggplot2::scale_fill_stepsn(
@@ -337,7 +337,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       )
     ) +
     labs(
-      title = str_wrap("DRD* rate† per ICB / Cluster", wrap),
+      title = str_wrap("DRD* rate† per ICB / fCluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +

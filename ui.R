@@ -28,19 +28,19 @@ ui <- page_navbar(
     title = PANEL_TITLE_1
   ),
 
-  dashboardUI(
-    id = "main",
-    min_date = min_date,
-    max_date = max_date,
-    SPINNER_TYPE = SPINNER_TYPE,
-    title = PANEL_TITLE_2
-  )#,
-
-  # deepDiveUI(
-  #   id = "deep_dive",
+  # dashboardUI(
+  #   id = "main",
+  #   min_date = min_date,
+  #   max_date = max_date,
   #   SPINNER_TYPE = SPINNER_TYPE,
-  #   title = PANEL_TITLE_3
-  # ),
+  #   title = PANEL_TITLE_2
+  # )#,
+
+  sysCompUI(
+    id = "sys_comp",
+    SPINNER_TYPE = SPINNER_TYPE,
+    title = PANEL_TITLE_3
+  )#,
   
   # aboutUI(id = "about_page")
 )

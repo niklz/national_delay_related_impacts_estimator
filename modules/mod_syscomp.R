@@ -270,7 +270,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
     })
 
     # --------------------------------------------------------------------------
-    # 2. TOTAL PLOT RENDERING (Pinned, Flattened Anchor)
+    # 2. DRD plot 
     # --------------------------------------------------------------------------
     output$drd_plot <- renderGirafe({
       # Require the reactive data to be ready and the switch to be initialized
@@ -284,6 +284,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
 
       min_date <- min(plot_df$Month_Date)
       max_date <- max(plot_df$Month_Date)
+      label_size <- 7
       date_span <- as.numeric(max_date - min_date)
       dynamic_nudge <- 0.05 * date_span
 
@@ -295,7 +296,8 @@ sysCompServer <- function(id, ts_data, choices_list) {
 
         plot_df <- plot_df %>%
           left_join(baseline_rates, by = "Month_Date") %>%
-          mutate(display_rate = rate - baseline_rate)
+          mutate(display_rate = rate - baseline_rate) %>%
+          filter(Group_Name != "National/Baseline")
       } else {
         plot_df <- plot_df %>% 
           mutate(display_rate = rate)
@@ -314,7 +316,19 @@ sysCompServer <- function(id, ts_data, choices_list) {
         aes(x = Month_Date, y = round(1000 * display_rate, 1), color = Group_Name)
       ) +
         # Dynamic grid lines mapping based on toggle state
-        { if(input$resid) geom_hline(yintercept = 0, color = "grey91", size = 0.5) } +
+        { if(input$resid) geom_hline(yintercept = 0, color = "cornsilk4", linetype = "dashed", size = 1) } +
+        { if(input$resid) annotate(
+            geom = "text", 
+            label = "National / Baseline", 
+            x = min_date, 
+            y = 0, 
+            colour = "cornsilk4", 
+            fontface = "bold",
+            size = label_size, 
+            hjust = 0, 
+            vjust = -0.6
+          ) 
+        } +
         { if(!input$resid) geom_segment(
             data = data.frame(y = 3:7),
             aes(x = min_date, xend = max_date, y = y, yend = y),
@@ -340,7 +354,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
         ggrepel::geom_text_repel(
           data = label_data,
           aes(color = Group_Name, label = str_wrap(Group_Name, 25)),
-          fontface = "bold", size = 7, direction = "y", lineheight = 0.9,
+          fontface = "bold", size = label_size, direction = "y", lineheight = 0.9,
           hjust = 0, segment.size = 1, segment.alpha = .6, segment.linetype = "dotted",
           box.padding = 0.7, nudge_x = dynamic_nudge
         ) +
@@ -368,7 +382,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
     })
 
     # --------------------------------------------------------------------------
-    # 4. BED UTILISATION PLOT (Your Exact Unchanged Code)
+    # 4. BED UTILISATION PLOT 
     # --------------------------------------------------------------------------
     output$bed_plot <- renderGirafe({
       req(ts_data(), input$geo_level, input$selected_entities)

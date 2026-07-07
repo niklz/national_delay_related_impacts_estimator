@@ -121,6 +121,22 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             )
           )
         ),
+        div(
+              class = "funnel-switch-container",
+              div(
+                class = "form-check form-switch",
+                tags$input(
+                  class = "form-check-input",
+                  type = "checkbox",
+                  id = ns("resid")
+                ),
+                tags$label(
+                  class = "form-check-label",
+                  `for` = ns("resid"),
+                  "Residual plot"
+                )
+              )
+            ),
         card_footer(
           div(
             class = "content-caption",
@@ -228,7 +244,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
     # 2. TOTAL PLOT RENDERING (Pinned, Flattened Anchor)
     # --------------------------------------------------------------------------
     output$drd_plot <- renderGirafe({
-      req(ts_data())
+      req(ts_data(), input$resid)
 
       max_date <- max(ts_data()$Month_Date, na.rm = TRUE)
       raw_start <- max_date %m-% months(11)
@@ -315,7 +331,9 @@ sysCompServer <- function(id, ts_data, choices_list) {
         )
 
       # --- PLOT ---
-      drd_plot <- ggplot(
+
+      drd_plot <- case_when(
+        !input$resid ~ ggplot(
         plot_df,
         aes(x = Month_Date, y = round(1000 * rate, 1), color = Group_Name)
       ) +
@@ -358,7 +376,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
           direction = "y",
           lineheight = 0.9,
           hjust = 0, # Left-aligns the text box
-          segment.size = .5,
+          segment.size = 1,
           segment.alpha = .6,
           segment.linetype = "dotted",
 
@@ -384,8 +402,14 @@ sysCompServer <- function(id, ts_data, choices_list) {
         ) +
         coord_cartesian(clip = "off") +
         labs(title = NULL, subtitle = NULL, x = NULL, y = NULL) +
-        shared_theme
+        shared_theme,
 
+        input$resid ~ browser()
+
+      )
+
+
+      drd_plot <- 
       girafe(
         ggobj = drd_plot,
         width_svg = 12.0,

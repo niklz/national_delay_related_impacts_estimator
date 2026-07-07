@@ -6,6 +6,28 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
   nav_panel(
     title = title,
     icon = icon("chart-line"),
+    card(
+      fill = FALSE,
+      style = "background-color: #F4F6F9;
+         /*border: 1px solid #e2e8f0;*/
+         box-shadow: none;",
+
+      card_body(
+        fill = FALSE,
+        style = "padding: 0.75rem 1rem;", # Snug padding (Top/Bottom, Left/Right)
+
+        tags$p(
+          style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
+          "This section displays the ",
+          tags$strong("delay-related death (*)"),
+          tags$strong(
+            " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
+          ),
+          " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level.",
+          "Delays in A&E are shown to increase acute length of stay. A second chart displays the average number of acute beds in use at any time over the last 12-months attributable solely to admission delays.",
+        )
+      )
+    ),
 
     layout_columns(
       col_widths = c(2, 5, 5),
@@ -36,7 +58,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             maxValues = 5,
             placeholder = 'Type to search...',
             updateOn = "close"
-          )
+          )          
         )
       ),
 
@@ -121,31 +143,14 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             )
           )
         ),
-        div(
-              class = "funnel-switch-container",
-              div(
-                class = "form-check form-switch",
-                tags$input(
-                  class = "form-check-input",
-                  type = "checkbox",
-                  id = ns("resid")
-                ),
-                tags$label(
-                  class = "form-check-label",
-                  `for` = ns("resid"),
-                  "Residual plot"
-                )
-              )
-            ),
-        card_footer(
-          div(
-            class = "content-caption",
-            tags$strong("Figure 4: "),
-            HTML(
-              "Latest 12 months Delay-Related Deaths per 1,000 admissions. Top plot is national baseline for comparisson."
-            )
+        awesomeRadio(
+            inputId = ns("resid"),
+            label = "Display raw DRD or residual to baseline:",
+            choices = c("Raw", "Residual"),
+            selected = "Raw",
+            inline = TRUE,
+            status = "warning"
           )
-        )
       ),
 
       # ==========================================
@@ -172,15 +177,6 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
               type = SPINNER_TYPE,
               color = "#003087",
               size = 0.7
-            )
-          )
-        ),
-        card_footer(
-          div(
-            class = "content-caption",
-            tags$strong("Figure 5: "),
-            HTML(
-              "Delays in A&E are shown to increase acute length of stay. This bar chart displays the average number of acute beds in use at any time over the last 12-months attributable solely to admission delays."
             )
           )
         )
@@ -215,7 +211,18 @@ sysCompServer <- function(id, ts_data, choices_list) {
     # Shared graphic configurations (Your exact theme variables)
     axis_shade <- "grey40"
     col_width <- 20
-    pal <- paletteer_d("lisa::ClaudeMonet_1")
+    pal <-
+      structure(
+        c(
+          "#A82203FF",
+          "#208CC0FF",
+          "#F1AF3AFF",
+          "rgb(149, 67, 207)",
+          "#637B31FF",
+          "#003967FF"
+        ),
+        class = "colors"
+      )
     geom_text_size <- 5.0 
     b_s <- 14 
     label_pos <- -0.4
@@ -289,7 +296,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
       dynamic_nudge <- 0.05 * date_span
 
       # --- CONVERT TO RESIDUAL VALUES IF TOGGLED ---
-      if (input$resid) {
+      if (input$resid == "Residual") {
         baseline_rates <- plot_df %>%
           filter(Group_Name == "National/Baseline") %>%
           select(Month_Date, baseline_rate = rate)
@@ -305,7 +312,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
 
       label_data <- plot_df %>% filter(Month_Date == max_date)
 
-      pal <- paletteer_d("MetBrewer::Juarez") %>%
+      pal <- pal %>%
         as.character() %>%
         set_names(label_data$Group_Name) %>%
         `[[<-`("National/Baseline", "cornsilk4")
@@ -316,8 +323,8 @@ sysCompServer <- function(id, ts_data, choices_list) {
         aes(x = Month_Date, y = round(1000 * display_rate, 1), color = Group_Name)
       ) +
         # Dynamic grid lines mapping based on toggle state
-        { if(input$resid) geom_hline(yintercept = 0, color = "cornsilk4", linetype = "dashed", size = 1) } +
-        { if(input$resid) annotate(
+        { if(input$resid == "Residual") geom_hline(yintercept = 0, color = "cornsilk4", linetype = "dashed", size = 1) } +
+        { if(input$resid == "Residual") annotate(
             geom = "text", 
             label = "National / Baseline", 
             x = min_date, 
@@ -329,7 +336,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
             vjust = -0.6
           ) 
         } +
-        { if(!input$resid) geom_segment(
+        { if(input$resid == "Raw") geom_segment(
             data = data.frame(y = 3:7),
             aes(x = min_date, xend = max_date, y = y, yend = y),
             color = "grey91", size = 0.5, inherit.aes = FALSE
@@ -346,7 +353,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
             tooltip = paste0(
               "<strong>", Group_Name, "</strong><br/>",
               "Month: ", format(Month_Date, "%B %Y"), "<br/>",
-              ifelse(input$resid, "Difference: ", "Rate: "), round(1000 * display_rate, 1)
+              ifelse(input$resid  == "Residual", "Difference: ", "Rate: "), round(1000 * display_rate, 1)
             ),
             size = 2
           )
@@ -381,45 +388,150 @@ sysCompServer <- function(id, ts_data, choices_list) {
       )
     })
 
-    # --------------------------------------------------------------------------
-    # 4. BED UTILISATION PLOT 
+# --------------------------------------------------------------------------
+    # 4. BED UTILISATION PLOT
     # --------------------------------------------------------------------------
     output$bed_plot <- renderGirafe({
-      req(ts_data(), input$geo_level, input$selected_entities)
+      # 1. Let execution continue when selections are empty
+      req(ts_data(), input$geo_level)
 
+      # 2. Catch the empty state immediately and return the placeholder plot safely
+      if (
+        is.null(input$selected_entities) || length(input$selected_entities) == 0
+      ) {
+        p_empty <- ggplot() +
+          annotate(
+            geom = "text",
+            x = 1,
+            y = 1,
+            label = "Please select groups from the selector to produce chart",
+            size = 1.5*geom_text_size,
+            fontface = "italic",
+            color = "grey50",
+            hjust = 0.5,
+            vjust = 0.5
+          ) +
+          theme_void() +
+          theme(plot.margin = aligned_margin)
+
+        return(
+          girafe(
+            ggobj = p_empty,
+            width_svg = 12.0,
+            height_svg = 10,
+            options = list(
+              # opts_toolbar(position = "none"), # Completely and safely hides toolbar
+              opts_sizing(rescale = TRUE, width = 1)
+            )
+          )
+        )
+      }
+
+      # 3. Normal data processing (only runs if choices exist)
       plot_df <- ts_data() %>%
-        filter(Level == input$geo_level, Group_Name %in% input$selected_entities)
+        filter(
+          Level == input$geo_level,
+          Group_Name %in% input$selected_entities
+        )
 
-      validate(need(nrow(plot_df) > 0, "Select entities to display bed metrics."))
+      validate(need(
+        nrow(plot_df) > 0,
+        "Please select groups from the selector to produce chart"
+      ))
 
       summary_df <- plot_df %>%
-        summarise(`Estimated excess bed utilisation` = mean(`Estimated excess bed utilisation`, na.rm = TRUE), .by = Group_Name) %>%
+        summarise(
+          `Estimated excess bed utilisation` = mean(
+            `Estimated excess bed utilisation`,
+            na.rm = TRUE
+          ),
+          .by = Group_Name
+        ) %>%
         mutate(Group_Name = stringr::str_wrap(Group_Name, 20))
 
-      max_val <- max(summary_df$`Estimated excess bed utilisation`, na.rm = TRUE)
+      max_val <- max(
+        summary_df$`Estimated excess bed utilisation`,
+        na.rm = TRUE
+      )
       max_y_bed <- max_val * 1.25
-      if (max_y_bed == 0) max_y_bed <- 10
+      if (max_y_bed == 0) {
+        max_y_bed <- 10
+      }
 
-      p_bed <- ggplot(summary_df, aes(y = `Estimated excess bed utilisation`, x = Group_Name, fill = Group_Name)) +
-        geom_col_interactive(aes(tooltip = paste0("<strong>", Group_Name, "</strong><br>Estimated excess beds utilised: ", round(`Estimated excess bed utilisation`, 0))), width = 0.4, color = NA) +
-        geom_text(aes(y = `Estimated excess bed utilisation`, label = scales::comma(round(`Estimated excess bed utilisation`, 0))), vjust = -2, hjust = 0.5, size = geom_text_size, show.legend = FALSE) +
-        geom_text(aes(y = `Estimated excess bed utilisation`, x = Group_Name), label = fontawesome("fa-bed"), family = "fontawesome-webfont", vjust = -0.5, hjust = 0.5, size = geom_text_size, show.legend = FALSE) +
+      p_bed <- ggplot(
+        summary_df,
+        aes(
+          y = `Estimated excess bed utilisation`,
+          x = Group_Name,
+          fill = Group_Name
+        )
+      ) +
+        geom_col_interactive(
+          aes(
+            tooltip = paste0(
+              "<strong>",
+              Group_Name,
+              "</strong><br>Estimated excess beds utilised: ",
+              round(`Estimated excess bed utilisation`, 0)
+            )
+          ),
+          width = 0.4,
+          color = NA
+        ) +
+        geom_text(
+          aes(
+            y = `Estimated excess bed utilisation`,
+            label = scales::comma(round(`Estimated excess bed utilisation`, 0))
+          ),
+          vjust = -2,
+          hjust = 0.5,
+          size = geom_text_size,
+          show.legend = FALSE
+        ) +
+        geom_text(
+          aes(y = `Estimated excess bed utilisation`, x = Group_Name),
+          label = fontawesome("fa-bed"),
+          family = "fontawesome-webfont",
+          vjust = -0.5,
+          hjust = 0.5,
+          size = geom_text_size,
+          show.legend = FALSE
+        ) +
         scale_fill_manual(values = pal) +
         scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
         labs(x = NULL, y = NULL) +
         theme_minimal(base_size = b_s) +
         theme(
-          plot.margin = aligned_margin, panel.grid = element_blank(), axis.text.y = element_blank(),
-          axis.text.x = element_text(face = "bold", size = rel(1.15)), axis.title = element_blank(),
-          axis.line.x = element_line(color = axis_shade, linewidth = 0.8), legend.position = "none"
+          plot.margin = aligned_margin,
+          panel.grid = element_blank(),
+          axis.text.y = element_blank(),
+          axis.text.x = element_text(face = "bold", size = rel(1.15)),
+          axis.title = element_blank(),
+          axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
+          legend.position = "none"
         )
 
+      # 4. Render actual chart
       girafe(
-        ggobj = p_bed, width_svg = 12.0, height_svg = 10,
+        ggobj = p_bed,
+        width_svg = 12.0,
+        height_svg = 10,
         options = list(
-          opts_tooltip(css = "background-color: #1e293b; color: #ffffff; padding: 6px; font-family: sans-serif;", opacity = 0.95),
+          opts_tooltip(
+            css = "background-color: #1e293b; color: #ffffff; padding: 6px; font-family: sans-serif;",
+            opacity = 0.95
+          ),
           opts_hover(css = "fill: #93c5fd; cursor: pointer;"),
-          opts_toolbar(hidden = c('lasso_select', 'lasso_deselect', 'zoom_onoff', 'zoom_rect', 'zoom_reset', 'fullscreen')),
+          opts_toolbar(
+            hidden = c(
+              'lasso_select',
+              'lasso_deselect',
+              'zoom_onoff',
+              'zoom_rect',
+              'zoom_reset',
+              'fullscreen'
+            )
+          ),
           opts_sizing(rescale = TRUE, width = 1)
         )
       )

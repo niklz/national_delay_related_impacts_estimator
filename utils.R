@@ -74,42 +74,71 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
 
   label_data <- plot_data %>% filter(period == max(period))
 
-  ts_plot <- ggplot(
+# Define date boundaries for bounded segment grid lines
+min_date <- min(plot_data$period, na.rm = TRUE)
+max_date <- max(plot_data$period, na.rm = TRUE)
+
+ts_plot <- ggplot(
     plot_data,
     aes(x = period, y = rate * 1000, col = parent_org, group = parent_org, data_id = parent_org)
   ) +
+  
+    # 1. CUSTOM BOUNDED X-GRID LINES (Only spans from min_date to max_date)
+    geom_segment(
+      data = data.frame(x = unique(plot_data$period)),
+      aes(x = x, xend = x, y = -Inf, yend = Inf),
+      color = "#ced4da",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    ) +
+    
+    # Line and Point Layers
     geom_line(linewidth = 2.5, col = "white") +
     geom_line_interactive(linewidth = 1.2) +
     geom_point_interactive(aes(tooltip = tooltip_text), size = 2.5, hover_nearest = TRUE) +
     
-    # FIX: Native text offset layer is infinitely faster than heavy ggrepel simulation
-    geom_text_interactive(
+    # 2. INTERACTIVE REPEL LABELS
+    geom_text_repel_interactive(
       data = label_data,
-      aes(label = parent_org, data_id = parent_org),
-      hjust = 0,
-      nudge_x = 8, 
+      aes(
+        color = parent_org, 
+        data_id = parent_org, 
+        label = str_wrap(parent_org, 25)
+      ),
+      fontface = "bold",
       size = base * 0.85 / 2.83464,
-      fontface = "bold"
+      direction = "y",
+      lineheight = 0.9,
+      hjust = 0,
+      segment.size = 0.5,
+      segment.alpha = 0.5,
+      segment.linetype = "dotted",
+      box.padding = 0.5,
+      nudge_x = 8
     ) +
+    
     scale_x_date(
       breaks = scales::breaks_pretty(n = 6),
-      expand = expansion(mult = c(0.02, 0.25)),
+      expand = expansion(mult = c(0.02, 0.40)), 
       labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%b\n%Y"), format(x, "%b"))
     ) +
     scale_y_continuous(labels = \(x) str_c(x)) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
+    coord_cartesian(clip = "off") + 
     labs(title = str_wrap("DRD* rate† per Region", wrap), x = NULL, y = NULL) +
+    
     theme_minimal(base_size = base) +
     theme(
       legend.position = "none",
       plot.title = element_text(hjust = 0.5, vjust = 5),
       plot.margin = margin(8, 5, 5, 5), 
-      panel.grid.minor.x = element_line(color = "#e9ecef", linewidth = 0.5),
-      panel.grid.major.x = element_line(color = "#ced4da", linewidth = 0.5)
+      # 3. SUPPRESS BUILT-IN GRID LINES (Prevents lines bleeding into label expansion area)
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank()
     )
 
-  ts_plot +
-    inset_element(plot_region, on_top = FALSE, left = -0.05, bottom = 0, right = 0.9, top = 1)
+ts_plot +
+  inset_element(plot_region, on_top = FALSE, left = -0.05, bottom = 0, right = 0.9, top = 1)
 }
 
 

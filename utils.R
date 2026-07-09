@@ -337,7 +337,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       )
     ) +
     labs(
-      title = str_wrap("DRD* rate† per ICB / fCluster", wrap),
+      title = str_wrap("DRD* rate† per ICB / Cluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +

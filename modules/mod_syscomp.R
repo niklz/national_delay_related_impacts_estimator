@@ -18,12 +18,12 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
 
         tags$p(
           style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
-          "This section displays the ",
+          "This section displays the estimated",
           tags$strong("delay-related death (*)"),
           tags$strong(
             " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
           ),
-          " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level.",
+          " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level via the selectors on the left.",
           "Delays in A&E are shown to increase acute length of stay. A second chart displays the average number of acute beds in use at any time over the last 12-months attributable solely to admission delays.",
         )
       )
@@ -58,113 +58,84 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             maxValues = 5,
             placeholder = 'Type to search...',
             updateOn = "close"
-          )          
+          )
         )
       ),
 
-      # ==========================================
-      # CARD 2: Timeseries Analysis Stack
-      # ==========================================
-      card(
-        # full_screen = TRUE,
-        card_header(
-          style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
-          span(
-            "Estimated monthly Delay-Related deaths per 1,000 admissions", # (Or appropriate text for Card 3)
-            style = "font-weight: bold; font-size: 0.8vw; margin: 0;"
-          )
-        ),
-        # REMOVED overflow: hidden !important from card_body to allow scrollbars to display naturally
-        card_body(
-          style = "padding: 0.5rem; display: flex; flex-direction: column; gap: 0; height: 100%;",
+# ==========================================
+# CARD 2: Timeseries Analysis Stack
+# ==========================================
+card(
+  card_body(
+    style = "padding: 0.5rem; display: flex; flex-direction: column; height: 100%; overflow: hidden;",
 
-          tags$style(HTML(
-            "
-            /* Pinned Total view constraints */
-            .total-container .html-widget.girafe, 
-            .total-container .html-widget.girafe svg { 
-              height: 100% !important; 
-              max-height: 100% !important;
-              width: 100% !important;
-            }
-            .total-container .html-widget.girafe > div { 
-              align-items: center !important; 
-              height: 100% !important;
-            }
-            
-            /* Comparison Container: Let it overflow vertically and show scrollbars */
-            .comparison-container {
-              overflow-y: auto !important;
-              overflow-x: hidden !important;
-              flex-grow: 1;
-              max-height: 66%;
-            }
-            .comparison-container .html-widget.girafe {
-              height: auto !important;
-              width: 100% !important;
-            }
-            .comparison-container .html-widget.girafe svg { 
-              height: auto !important;
-              max-height: none !important;
-              aspect-ratio: auto !important;
-            }
-            .comparison-container .html-widget.girafe > div { 
-              align-items: flex-start !important; 
-              height: auto !important;
-            }
-            
-            /* Bed Utilisation Container */
-            .bed-container {
-              flex: 1 1 auto !important;
-              width: 100% !important;
-              overflow-y: auto !important;
-              overflow-x: hidden !important;
-            }
-            .bed-container .html-widget.girafe {
-              height: auto !important;
-              width: 100% !important;
-            }
-          "
-          )),
+    tags$style(HTML("
+      /* Constrain girafe widget to fill flex space without overflowing */
+      .total-container {
+        flex: 1 1 auto;
+        min-height: 0; /* Critical for flex child shrink/grow calculations */
+        width: 100%;
+        overflow: hidden;
+      }
+      .total-container .html-widget.girafe, 
+      .total-container .html-widget.girafe svg { 
+        height: 100% !important; 
+        max-height: 100% !important;
+        width: 100% !important;
+      }
+      /* Compact radio group styling */
+      .toggle-container {
+        flex: 0 0 auto;
+        padding-top: 0.25rem;
+        margin-top: auto;
+      }
+      .toggle-container .awesome-radio {
+        margin-bottom: 0 !important;
+      }
+    ")),
 
-          # Pinned Top Row: Allocated exactly 33% of card height (Never Scrolls)
-          div(
-            class = "total-container",
-            style = "flex: 0 0 100%; height: 100%; max-height: 100%; width: 100%; padding-bottom: 0.25rem; overflow: hidden;",
-            withSpinner(
-              girafeOutput(
-                ns("drd_plot"),
-                width = "100%",
-                height = "100%"
-              ),
-              type = SPINNER_TYPE,
-              color = "#003087",
-              size = 0.7
-            )
-          )
+    # Pinned Top Row: Takes up remaining flex height
+    div(
+      class = "total-container",
+      withSpinner(
+        girafeOutput(
+          ns("drd_plot"),
+          width = "100%",
+          height = "100%"
         ),
-        awesomeRadio(
-            inputId = ns("resid"),
-            label = "Display raw DRD or residual to baseline:",
-            choices = c("Raw", "Residual"),
-            selected = "Raw",
-            inline = TRUE,
-            status = "warning"
-          )
-      ),
+        type = SPINNER_TYPE,
+        color = "#003087",
+        size = 0.7
+      )
+    ),
+
+    div(
+      class = "toggle-container",
+      awesomeRadio(
+        inputId = ns("resid"),
+        label = "Display raw or residual (to national baseline) DRD* rate†:",
+        choices = c("Raw", "Residual"),
+        selected = "Raw",
+        inline = TRUE,
+        status = "warning",
+        width = "auto" 
+      )
+    )
+  )
+),
 
       # ==========================================
       # CARD 3: Avoidable Bed Utilisation Chart
       # ==========================================
       card(
         # full_screen = TRUE,
-        card_header(
-          style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
-          span(
-            "Estimated avoidable acute bed utilisation", # (Or appropriate text for Card 3)
-            style = "font-weight: bold; font-size: 0.8vw; margin: 0;"
-          )
-        ),
+        # card_header(
+        #   style = "display: flex; justify-content: center; align-items: center; text-align: center; min-height: auto; flex: 0 0 auto;",
+        #   span(
+        #     "Estimated avoidable acute bed utilisation", # (Or appropriate text for Card 3)
+        #     style = "font-weight: bold; font-size: 0.8vw; margin: 0;"
+        #   )
+        # ),
         card_body(
           style = "padding: 0.5rem; display: flex; flex-direction: column;",
           div(
@@ -217,7 +188,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
           "#A82203FF",
           "#208CC0FF",
           "#F1AF3AFF",
-          "rgb(149, 67, 207)",
+          "#946795",
           "#637B31FF",
           "#003967FF"
         ),
@@ -241,7 +212,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
         panel.grid.major.y = element_blank(),
         panel.grid.minor = element_blank(),
         panel.grid.major.x = element_line(color = "grey91", size = 0.5),
-        plot.title = element_text(color = "grey10", size = 28, face = "bold", margin = margin(t = 15)),
+        plot.title = element_text(color = "grey10", size = 18, face = "bold", margin = margin(t = 15), hjust = 0.5, vjust = 5),
         plot.subtitle = element_markdown(color = "grey30", size = 16, lineheight = 1.35, margin = margin(t = 15, b = 40)),
         plot.title.position = "plot",
         plot.caption.position = "plot",
@@ -342,9 +313,10 @@ sysCompServer <- function(id, ts_data, choices_list) {
             color = "grey91", size = 0.5, inherit.aes = FALSE
           ) 
         } +
-        geom_line_interactive(
-          aes(group = Group_Name, data_id = Group_Name),
-          linewidth = 1.2
+        ggh4x::geom_pointpath(
+          aes(group = Group_Name),
+            size = 1.5,
+            linewidth = 1
         ) +
         geom_point_interactive(
           aes(
@@ -354,9 +326,9 @@ sysCompServer <- function(id, ts_data, choices_list) {
               "<strong>", Group_Name, "</strong><br/>",
               "Month: ", format(Month_Date, "%B %Y"), "<br/>",
               ifelse(input$resid  == "Residual", "Difference: ", "Rate: "), round(1000 * display_rate, 1)
-            ),
-            size = 2
-          )
+            )
+          ),
+          size = 4
         ) +
         ggrepel::geom_text_repel(
           data = label_data,
@@ -372,7 +344,8 @@ sysCompServer <- function(id, ts_data, choices_list) {
           expand = expansion(mult = c(0.05, 0.45))
         ) +
         coord_cartesian(clip = "off") +
-        labs(title = NULL, subtitle = NULL, x = NULL, y = NULL) +
+        labs(title = "Monthly DRD* rate† over latest 12-month period", subtitle = NULL, x = NULL, y = NULL) +
+        {if(input$resid == "Residual") labs(title = "Montlyh DRD* rate† residual to national baseline over latest 12-month period")} +
         shared_theme
 
       girafe(
@@ -481,33 +454,37 @@ sysCompServer <- function(id, ts_data, choices_list) {
         geom_text(
           aes(
             y = `Estimated excess bed utilisation`,
-            label = scales::comma(round(`Estimated excess bed utilisation`, 0))
+            label = scales::comma(round(`Estimated excess bed utilisation`, 0)),
+            col = Group_Name
           ),
           vjust = -2,
           hjust = 0.5,
-          size = geom_text_size,
+          size = 1.5*geom_text_size,
           show.legend = FALSE
         ) +
         geom_text(
-          aes(y = `Estimated excess bed utilisation`, x = Group_Name),
+          aes(y = `Estimated excess bed utilisation`, x = Group_Name, col = Group_Name),
           label = fontawesome("fa-bed"),
           family = "fontawesome-webfont",
           vjust = -0.5,
           hjust = 0.5,
-          size = geom_text_size,
+          size = 1.5*geom_text_size,
           show.legend = FALSE
         ) +
         scale_fill_manual(values = pal) +
+        scale_colour_manual(values = pal) +
         scale_y_continuous(limits = c(0, max_y_bed), expand = c(0, 0)) +
-        labs(x = NULL, y = NULL) +
-        theme_minimal(base_size = b_s) +
+        labs(title = "Estimated avoidable actue-bed utilisation", x = NULL, y = NULL) +
+        theme_minimal(base_family = "open_sans", base_size = b_s) +
+        # shared_theme +
         theme(
           plot.margin = aligned_margin,
-          panel.grid = element_blank(),
+          plot.title = element_text(color = "grey10", size = 18,  margin = margin(t = 15), hjust = 0.5, vjust = 5),
           axis.text.y = element_blank(),
           axis.text.x = element_text(face = "bold", size = rel(1.15)),
           axis.title = element_blank(),
           axis.line.x = element_line(color = axis_shade, linewidth = 0.8),
+          panel.grid = element_blank(),
           legend.position = "none"
         )
 

@@ -24,7 +24,11 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
           ),
           " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level via the selectors on the left.",
-          "Delays in A&E are shown to increase acute length of stay. A second chart displays the average number of acute beds in use at any time over the last 12-months attributable solely to admission delays.",
+          "Delays in A&E are shown to increase ",
+          tags$strong("acute length of stay"),
+           ". A second chart displays the average number of ",
+            tags$strong("acute beds"),
+          " in use at any time over the last 12-months attributable solely to admission delays.",
         )
       )
     ),

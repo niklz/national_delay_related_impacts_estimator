@@ -77,34 +77,34 @@ min_date <- min(available_dates, na.rm = TRUE)
 max_date <- max(available_dates, na.rm = TRUE)
 
 # ==============================================================================
-# PERF FIX: PRE-COMPUTE MATHEMATICAL GRID MATRIX ONCE
+# PERF FIX: PRE-COMPUTE MATHEMATICAL GRID MATRIX ONCE (PERFECTLY SMOOTH)
 # ==============================================================================
 over_dispersion <- 3
-sigmas_global <- seq(0.5, 3.0, by = 0.5)
+sigmas_global <- seq(1.0, 4.0, by = 1)
 x_grid_max <- max(ae_impacts$tot_ae_adm, na.rm = TRUE) * 1.5
 
 mu_global <- sum(ae_impacts$excess_mort, na.rm = TRUE) /
   sum(ae_impacts$tot_ae_adm, na.rm = TRUE)
 
+# NEW: Generate exponentially spaced points (denser near 0, sparser at the high end)
+# 10^1.70 = ~50 admissions (start point)
+x_sequence <- 10^seq(0, log10(x_grid_max), length.out = 1000)
+
 funnel_base_grid <- tibble(
-  tot_ae_adm = seq(10, x_grid_max, length.out = 600)
+  tot_ae_adm = x_sequence
 ) %>%
   mutate(
-    logit_mu = log(mu_global / (1 - mu_global)),
-    logit_se = sqrt(over_dispersion) *
-      sqrt(1 / (tot_ae_adm * mu_global * (1 - mu_global)))
+    se = sqrt(over_dispersion) * sqrt((mu_global * (1 - mu_global)) / tot_ae_adm)
   )
 
 global_funnel_lines <- purrr::map_df(sigmas_global, function(z) {
   tibble(
     tot_ae_adm = funnel_base_grid$tot_ae_adm,
-    upper = 1 /
-      (1 + exp(-(funnel_base_grid$logit_mu + z * funnel_base_grid$logit_se))),
+    upper = pmin(1, pmax(0, mu_global + z * funnel_base_grid$se)),
     sigma = as.character(z),
     z_val = z
   )
 })
-
 
 global_funnel_ribbons <- tibble()
 if (length(sigmas_global) >= 2) {
@@ -114,21 +114,12 @@ if (length(sigmas_global) >= 2) {
     z_upper <- sigmas_global[i + 1]
     tibble(
       tot_ae_adm = funnel_base_grid$tot_ae_adm,
-      ymin = 1 /
-        (1 +
-          exp(
-            -(funnel_base_grid$logit_mu + z_lower * funnel_base_grid$logit_se)
-          )),
-      ymax = 1 /
-        (1 +
-          exp(
-            -(funnel_base_grid$logit_mu + z_upper * funnel_base_grid$logit_se)
-          )),
+      ymin = pmin(1, pmax(0, mu_global + z_lower * funnel_base_grid$se)),
+      ymax = pmin(1, pmax(0, mu_global + z_upper * funnel_base_grid$se)),
       group_id = paste0(z_lower, "-", z_upper)
     )
   })
 }
-
 # ==============================================================================
 # AT A GLANCE TABLE DATA
 # ==============================================================================

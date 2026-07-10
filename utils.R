@@ -88,8 +88,8 @@ min_date <- min(plot_data$period, na.rm = TRUE)
 max_date <- max(plot_data$period, na.rm = TRUE)
 
 # 3. Establish label anchor limits slightly past your max date
-label_x_anchor <- max_date + lubridate::days(10)
-label_x_max    <- max_date + lubridate::days(100)
+label_x_anchor <- max_date + lubridate::days(1)
+label_x_max    <- max_date + lubridate::days(90)
 
 ts_plot <- ggplot(
     plot_data,
@@ -154,7 +154,15 @@ ts_plot <- ggplot(
       breaks = y_breaks,                    # Forces the axis ticks to align with your custom lines
       labels = \(x) str_c(x)
     ) +
-    paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
+    scale_color_manual(values = c(
+      "#A82203FF",
+      "#208CC0FF",
+      "#F1AF3AFF",
+      "#946795",
+      "#637B31FF",
+      "#003967FF",
+      "#e66c25"
+    )) +
     coord_cartesian(clip = "off") + 
     labs(title = str_wrap("DRD* rate† per Region", wrap), x = NULL, y = NULL) +
     

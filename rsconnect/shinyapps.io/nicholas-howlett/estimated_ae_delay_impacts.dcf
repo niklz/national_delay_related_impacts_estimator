@@ -5,6 +5,6 @@ account: nicholas-howlett
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 17555225
-bundleId: 12194422
-url: https://apps-bnssg.shinyapps.io/estimated_ae_delay_impacts/
+bundleId: 12249279
+url: https://apps-nhs.shinyapps.io/estimated_ae_delay_impacts/
 version: 1

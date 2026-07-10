@@ -40,7 +40,7 @@ ui <- page_navbar(
     id = "sys_comp",
     SPINNER_TYPE = SPINNER_TYPE,
     title = PANEL_TITLE_3
-  )#,
+  ),
   
-  # aboutUI(id = "about_page")
+  aboutUI(id = "about_page")
 )

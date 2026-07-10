@@ -78,12 +78,34 @@ time_series_plot <- function(data, plot_region, base = 11, wrap = 40) {
 min_date <- min(plot_data$period, na.rm = TRUE)
 max_date <- max(plot_data$period, na.rm = TRUE)
 
+# 1. Pre-calculate horizontal breaks dynamically from your data
+y_vals <- plot_data$rate * 1000
+y_breaks <- pretty(y_vals, n = 5)
+grid_y_df <- data.frame(y = y_breaks)
+
+# 2. Extract date boundaries for bounding the grid lines
+min_date <- min(plot_data$period, na.rm = TRUE)
+max_date <- max(plot_data$period, na.rm = TRUE)
+
+# 3. Establish label anchor limits slightly past your max date
+label_x_anchor <- max_date + lubridate::days(10)
+label_x_max    <- max_date + lubridate::days(100)
+
 ts_plot <- ggplot(
     plot_data,
     aes(x = period, y = rate * 1000, col = parent_org, group = parent_org, data_id = parent_org)
   ) +
   
-    # 1. CUSTOM BOUNDED X-GRID LINES (Only spans from min_date to max_date)
+    # 1. CUSTOM BOUNDED HORIZONTAL GRID LINES (Stops cleanly at max_date)
+    geom_segment(
+      data = grid_y_df,
+      aes(x = min_date, xend = max_date, y = y, yend = y),
+      color = "grey91",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    ) +
+  
+    # 2. CUSTOM BOUNDED VERTICAL GRID LINES 
     geom_segment(
       data = data.frame(x = unique(plot_data$period)),
       aes(x = x, xend = x, y = -Inf, yend = Inf),
@@ -97,32 +119,41 @@ ts_plot <- ggplot(
     geom_line_interactive(linewidth = 1.2) +
     geom_point_interactive(aes(tooltip = tooltip_text), size = 2.5, hover_nearest = TRUE) +
     
-    # 2. INTERACTIVE REPEL LABELS
+    # 3. INTERACTIVE REPEL LABELS (Strictly stacked vertically to the right)
     geom_text_repel_interactive(
       data = label_data,
       aes(
+        x = period,
+        y = rate * 1000,
         color = parent_org, 
         data_id = parent_org, 
-        label = str_wrap(parent_org, 25)
+        label = str_wrap(parent_org, 15)
       ),
       fontface = "bold",
       size = base * 0.85 / 2.83464,
-      direction = "y",
+      direction = "y",                      # Force only vertical repulsion
+      hjust = 0,                            # Left-align the stacked text
+      xlim = c(label_x_anchor, label_x_max), # Restrict text boxes to this outer margin zone
+      force = 3,
+      force_pull = 0.2,
+      max.overlaps = Inf,                   # Never drop labels that clash at 0
       lineheight = 0.9,
-      hjust = 0,
       segment.size = 0.5,
       segment.alpha = 0.5,
       segment.linetype = "dotted",
       box.padding = 0.5,
-      nudge_x = 8
+      point.padding = 0.3
     ) +
     
     scale_x_date(
-      breaks = scales::breaks_pretty(n = 6),
-      expand = expansion(mult = c(0.02, 0.40)), 
+      breaks = unique(plot_data$period),    # Keeps ticks perfectly matched to data months
+      expand = expansion(mult = c(0.02, 0.25)), 
       labels = function(x) ifelse(lubridate::month(x) == 1, format(x, "%b\n%Y"), format(x, "%b"))
     ) +
-    scale_y_continuous(labels = \(x) str_c(x)) +
+    scale_y_continuous(
+      breaks = y_breaks,                    # Forces the axis ticks to align with your custom lines
+      labels = \(x) str_c(x)
+    ) +
     paletteer::scale_color_paletteer_d("MetBrewer::Hokusai1") +
     coord_cartesian(clip = "off") + 
     labs(title = str_wrap("DRD* rate† per Region", wrap), x = NULL, y = NULL) +
@@ -132,9 +163,12 @@ ts_plot <- ggplot(
       legend.position = "none",
       plot.title = element_text(hjust = 0.5, vjust = 5),
       plot.margin = margin(8, 5, 5, 5), 
-      # 3. SUPPRESS BUILT-IN GRID LINES (Prevents lines bleeding into label expansion area)
+      
+      # 4. SUPPRESS ALL BUILT-IN GRID LINES
       panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank()
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank()
     )
 
 ts_plot +

@@ -59,11 +59,6 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             placeholder = 'Type to search...',
             updateOn = "close"
           )
-        ),
-        actionButton(
-          ns("debug_btn"),
-          "Pause & Debug State",
-          class = "btn-warning"
         )
       ),
 
@@ -237,19 +232,10 @@ sysCompServer <- function(id, ts_data, choices_list) {
     # 4. Helper reactive to fetch active palette + National Baseline
     active_palette <- reactive({
       pal_vec <- color_assignments$mapping
-      pal_vec["National/Baseline"] <- baseline_color
+      pal_vec["National Baseline"] <- baseline_color
       pal_vec
     })
 
-    observeEvent(input$debug_btn, {
-      message("--- Entering Debugger ---")
-
-      # Print module-scoped inputs explicitly to avoid environment issues
-      print(sapply(names(input), function(x) input[[x]], simplify = FALSE))
-
-      # Trigger the console debugger
-      browser()
-    })
 
     # --------------------------------------------------------------------------
     # 1. INSTANT SELECTIZE CHOICES
@@ -326,7 +312,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
           Group_Name == "Total",
           Month_Date >= raw_start
         ) %>%
-        mutate(Group_Name = "National/Baseline")
+        mutate(Group_Name = "National Baseline")
 
       # Extract user choices
       selected_df <- ts_data() %>%
@@ -364,13 +350,13 @@ sysCompServer <- function(id, ts_data, choices_list) {
       # --- CONVERT TO RESIDUAL VALUES IF TOGGLED ---
       if (input$resid == "Residual") {
         baseline_rates <- plot_df %>%
-          filter(Group_Name == "National/Baseline") %>%
+          filter(Group_Name == "National Baseline") %>%
           select(Month_Date, baseline_rate = rate)
 
         plot_df <- plot_df %>%
           left_join(baseline_rates, by = "Month_Date") %>%
           mutate(display_rate = rate - baseline_rate) %>%
-          filter(Group_Name != "National/Baseline")
+          filter(Group_Name != "National Baseline")
       } else {
         plot_df <- plot_df %>%
           mutate(display_rate = rate)
@@ -428,7 +414,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
           if (input$resid == "Residual") {
             annotate(
               geom = "text",
-              label = "National / Baseline",
+              label = "National Baseline",
               x = min_date,
               y = 0,
               colour = "cornsilk4",

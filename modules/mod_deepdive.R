@@ -445,7 +445,6 @@ deepDiveServer <- function(id, ts_data, choices_list) {
       # Height scaling factor per facet (adjust slightly if needed, e.g., 2.5 or 2.8)
       dynamic_height <- 0.2 + (num_selected * 2.8)
 
-      browser()
       # CHANGED: rescale = FALSE ensures the dynamic height is respected and prevents SVG distortion/squishing
       girafe(
         ggobj = p_compare,

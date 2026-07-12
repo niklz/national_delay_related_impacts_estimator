@@ -68,42 +68,22 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
       ),
 
       # ==========================================
-      # CARD 2: Combined Top Worseners & Improvers
+      # CARD 2: 3 month performance table
       # ==========================================
       card(
         full_screen = TRUE,
         card_body(
           class = "content-card-body",
 
-          layout_columns(
-            col_widths = c(6, 6),
-
             div(
               class = "content-table-scroll",
               withSpinner(
-                reactableOutput(ns("top_improving")),
+                reactableOutput(ns("perf_3month")),
                 type = SPINNER_TYPE,
                 color = "#003087",
                 size = 0.7
               )
-            ),
-            div(
-              class = "content-table-scroll",
-              withSpinner(
-                reactableOutput(ns("top_worsening")),
-                type = SPINNER_TYPE,
-                color = "#003087",
-                size = 0.7
-              )
-            ),
-          ) #,
-
-          # SHARED CAPTION BLOCK (Unchanged)
-          # div(
-          #   class = "content-caption",
-          #   tags$strong("Table 2 & 3: "),
-          #   "Top improving and worsening Trusts, ranked by percentage change in DRD¹ per 1,000 admissions over the preceding 3-month period (seasonally adjusted). Table 2 shows the largest increases, and Table 3 shows the largest decreases."
-          # )
+            )
         )
       )
     ) #,
@@ -132,7 +112,6 @@ glanceServer <- function(id) {
       req(table_data)
 
 
-      browser()
       display_df <- select(
         table_data,
         `Trust`,
@@ -286,91 +265,206 @@ glanceServer <- function(id) {
     })
 
     # ==========================================================================
-    # TOP GROWERS (Reactable Implementation)
+    # 3 month performance
     # ==========================================================================
-    output$top_worsening <- renderReactable({
-      req(top_worsening)
-
-      max_pct <- max(abs(top_worsening$`Percent change (Delay-Related Deaths)`), na.rm = TRUE)
-
+    output$perf_3month <- renderReactable({
+      req(table_data_3mo)
+      # Use z = 3 for a standard 3-sigma "Control Limit" to account for overdispersion
+      z <- 3 
+      
+      # Safe division for n=0 cases
+      n <- pmax(1, table_data_3mo$`Total admissions`) 
+      p <- table_data_3mo$`Proportion DTA > 4 hours`
+      
+      denominator <- 1 + (z^2 / n)
+      center <- (p + (z^2 / (2 * n))) / denominator
+      # Using pmax(0) inside sqrt as an extra safety net against float imprecision
+      spread <- (z * sqrt(pmax(0, (p * (1 - p) / n) + (z^2 / (4 * n^2))))) / denominator
+      
+      table_data_3mo$Lower <- pmax(0, center - spread)
+      table_data_3mo$Upper <- pmin(1, center + spread)
+      
+      # Calculate "Delays Prevented" (Net Impact vs National)
+      global_rate <- table_data_3mo$`Number of DTA > 4 hours`[table_data_3mo$Trust == "Total"] / pmax(1, table_data_3mo$`Total admissions`[table_data_3mo$Trust == "Total"])
+      table_data_3mo$Expected <- table_data_3mo$`Total admissions` * global_rate
+      
+      # Positive = Fewer delays than expected (Good). Negative = More delays (Bad).
+      table_data_3mo$Net_Timely <- table_data_3mo$Expected - table_data_3mo$`Number of DTA > 4 hours`
+      
+      # Sort: 'Total' at TOP, sort the rest by Net Timely Admissions (Descending)
+      is_not_total <- table_data_3mo$Trust != "Total"
+      table_data_3mo <- table_data_3mo[order(is_not_total, -table_data_3mo$Net_Timely), ]
+      
+      table_data_3mo$Visual <- NA 
+      
+      # Render table
       reactable(
-        top_worsening,
+        table_data_3mo,
         pagination = FALSE,
         filterable = TRUE,
         highlight = TRUE,
-        defaultColDef = colDef(align = "center"),
+        # defaultColDef = colDef(align = "center"),
         fullWidth = TRUE,
         style = list(width = "100%", overflowX = "hidden"),
-
+        
+        
+        
+        theme = reactableTheme(
+          cellPadding = "16px 12px"
+        ),
+        
         rowStyle = function(index) {
-          if (top_worsening$Trust[index] == "Total") {
+          if (table_data_3mo$Trust[index] == "Total") {
             return(list(fontWeight = "bold", background = "#e2e8f0"))
           }
           if (index %% 2 == 0) {
-            return(list(background = "#f8fafc"))
+            return(list(background = "#f1f5f9"))
           }
           return(list(background = "#ffffff"))
         },
-
+        
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change (Delay-Related Deaths)` = colDef(
-            name = "Top worsening †",
-            minWidth = 120,
+          `Number of DTA > 4 hours` = colDef(name = "Delayed Admissions (>4h)", width = 120),
+          `Total admissions` = colDef(name = "Total Admissions", width = 120),
+          
+          `Proportion DTA > 4 hours` = colDef(show = FALSE),
+          `Estimated Delay-Related Deaths` = colDef(show = FALSE),
+          `Estimated deaths per thousand admissions` = colDef(show = FALSE),
+          Lower = colDef(show = FALSE),
+          Upper = colDef(show = FALSE), 
+          Expected = colDef(show = FALSE),
+          
+          # Updated Metric Column for Delays
+          Net_Timely = colDef(
+            name = "Additional Timely Admissions (vs National Rate)", 
+            width = 160,
+            headerStyle = list(
+              whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
+            ),
+            cell = function(value, index) {
+              if (table_data_3mo$Trust[index] == "Total") return("—") 
+              
+              formatted_val <- sprintf("%+.1f", value)
+              
+              # Color code: Green is good (+ prevented), Red is bad (- excess)
+              color <- if (value > 0) "#16a34a" else if (value < 0) "#dc2626" else "#64748b"
+              
+              div(style = list(color = color, fontWeight = "bold"), formatted_val)
+            }
+          ),
+          
+          Visual = colDef(
+            name = "Performance vs National Average",
+            minWidth = 320, 
+            
             headerStyle = list(
               whiteSpace = "normal",
               wordBreak = "normal",
               lineHeight = "1.2",
               paddingBottom = "4px"
             ),
-            cell = reactable_percent_bar_formatter(max_pct, df = top_worsening)
+            
+            cell = function(value, index) {
+              is_total <- table_data_3mo$Trust[index] == "Total"
+              
+              global_pct <- global_rate * 100
+              est_pct   <- table_data_3mo$`Proportion DTA > 4 hours`[index] * 100
+              
+              lower_pct <- table_data_3mo$Lower[index] * 100
+              upper_pct <- table_data_3mo$Upper[index] * 100
+              width_pct <- upper_pct - lower_pct
+              
+              # Determine if CI should be suppressed (suppress if total range is < 2.5%)
+              show_ci <- !is_total && (width_pct >= 2.5)
+              
+              # Create standard layout wrapper
+              div(style = "padding: 0 24px; width: 100%;",
+                  div(
+                    # Height increased to 48px to cleanly separate labels above and below
+                    style = "position: relative; width: 100%; height: 48px; display: flex; align-items: center; margin-top: 12px; margin-bottom: 12px;",
+                    
+                    # A baseline axis line spanning 0 to 100%
+                    div(style = "position: absolute; left: 0; right: 0; height: 1px; background-color: #cbd5e1; z-index: 1;"),
+                    
+                    # Conditional CI (Only drawn if wide enough to prevent clutter)
+                    if (show_ci) {
+                      tagList(
+                        # Light blue-gray CI background bar
+                        div(style = sprintf(
+                          "position: absolute; left: %s%%; width: %s%%; height: 4px; background-color: #cbd5e1; border-radius: 2px; z-index: 2; opacity: 0.6;",
+                          lower_pct, width_pct
+                        )),
+                        # CI left cap
+                        div(style = sprintf("position: absolute; left: %s%%; width: 1px; height: 10px; background-color: #94a3b8; transform: translateX(-50%%); z-index: 2;", lower_pct)),
+                        # CI right cap
+                        div(style = sprintf("position: absolute; left: %s%%; width: 1px; height: 10px; background-color: #94a3b8; transform: translateX(-50%%); z-index: 2;", upper_pct))
+                      )
+                    } else {
+                      NULL
+                    },
+                    
+                    # The Gap Bar (Not displayed for the Total/National row itself)
+                    if (!is_total) {
+                      gap_left <- min(global_pct, est_pct)
+                      gap_width <- abs(global_pct - est_pct)
+                      # Green if below national (fewer delays = good), Red if above (more delays = bad)
+                      gap_color <- if (est_pct < global_pct) "#22c55e" else "#ef4444"
+                      
+                      div(style = sprintf(
+                        "position: absolute; left: %s%%; width: %s%%; height: 6px; background-color: %s; border-radius: 3px; z-index: 3;",
+                        gap_left, gap_width, gap_color
+                      ))
+                    } else {
+                      NULL
+                    },
+                    
+                    # Trust Dot (Blue marker)
+                    div(style = sprintf(
+                      "position: absolute; left: %s%%; width: 12px; height: 12px; background-color: #2563eb; border-radius: 50%%; transform: translateX(-50%%); z-index: 5; box-shadow: 0 0 0 2px #fff;",
+                      est_pct
+                    )),
+                    
+                    # Trust Value Label (Floats above the dot)
+                    div(
+                      style = sprintf(
+                        "position: absolute; left: %s%%; top: -16px; transform: translateX(-50%%); font-size: 13px; font-weight: 700; color: #1e3a8a; z-index: 5; white-space: nowrap;",
+                        est_pct
+                      ), 
+                      if (is_total) "National Average" else sprintf("%.1f%%", est_pct)
+                    ),
+                    
+                    # National Reference Line (Slate vertical tick mark, not needed on the Total row)
+                    if (!is_total) {
+                      div(style = sprintf(
+                        "position: absolute; left: %s%%; width: 2px; height: 16px; background-color: #475569; transform: translateX(-50%%); z-index: 4;",
+                        global_pct
+                      ))
+                    } else {
+                      NULL
+                    },
+                    
+                    # National Reference Label (Floats below the tick mark)
+                    if (!is_total) {
+                      div(
+                        style = sprintf(
+                          "position: absolute; left: %s%%; bottom: -14px; transform: translateX(-50%%); font-size: 11px; font-weight: 600; color: #475569; z-index: 4; white-space: nowrap;",
+                          global_pct
+                        ),
+                        sprintf("National (%.1f%%)", global_pct)
+                      )
+                    } else {
+                      NULL
+                    }
+                  )
+              )
+            }
           )
         )
       )
+
+      
     })
 
-    # ==========================================================================
-    # TOP SHRINKERS (Reactable Implementation)
-    # ==========================================================================
-    output$top_improving <- renderReactable({
-      req(top_improving)
-
-      max_pct <- max(abs(top_improving$`Percent change (Delay-Related Deaths)`), na.rm = TRUE)
-
-      reactable(
-        top_improving,
-        pagination = FALSE,
-        filterable = TRUE,
-        highlight = TRUE,
-        defaultColDef = colDef(align = "center"),
-        fullWidth = TRUE,
-        style = list(width = "100%", overflowX = "hidden"),
-
-        rowStyle = function(index) {
-          if (top_improving$Trust[index] == "Total") {
-            return(list(fontWeight = "bold", background = "#e2e8f0"))
-          }
-          if (index %% 2 == 0) {
-            return(list(background = "#f8fafc"))
-          }
-          return(list(background = "#ffffff"))
-        },
-
-        columns = list(
-          Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change (Delay-Related Deaths)` = colDef(
-            name = "Top improving †",
-            minWidth = 120,
-            headerStyle = list(
-              whiteSpace = "normal",
-              wordBreak = "normal",
-              lineHeight = "1.2",
-              paddingBottom = "4px"
-            ),
-            cell = reactable_percent_bar_formatter(max_pct, df = top_improving)
-          )
-        )
-      )
-    })
   })
 }

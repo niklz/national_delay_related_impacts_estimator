@@ -160,6 +160,44 @@ table_data <- local({
   bind_rows(total_row, main_data)
 })
 
+table_data_3mo <- local({
+  # Assuming ae_impacts is already loaded in your environment
+  processed_data <- ae_impacts %>%
+    filter(period >= max(period)-dmonths(3)) %>%
+    select(
+      Trust = org,
+      `Total admissions` = tot_ae_adm,
+      `Number of DTA > 4 hours` = dta_gt4,
+      `Estimated Delay-Related Deaths` = excess_mort
+    ) %>%
+    summarise(across(c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated Delay-Related Deaths`), sum, na.rm = TRUE), .by = Trust) %>%
+    
+    # Do NOT multiply by 100 here. Wilson Score requires a 0 to 1 proportion.
+    mutate(`Proportion DTA > 4 hours` = case_when(
+      `Total admissions` > 0 ~ `Number of DTA > 4 hours` / `Total admissions`,
+      .default = 0
+    )) %>%
+    
+    mutate(`Estimated deaths per thousand admissions` = case_when(
+      (`Estimated Delay-Related Deaths` != 0 & `Total admissions` != 0) ~ 1000*(`Estimated Delay-Related Deaths`/`Total admissions`),
+      .default = 0)
+    ) %>%
+    # Round volumes, but do not round the proportion (keep precision for CI math)
+    mutate(
+      across(
+        c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated Delay-Related Deaths`),
+        ~ round(.x, 0)
+      )
+    )
+  
+  total_row <- processed_data %>% filter(Trust == "Total")
+  main_data <- processed_data %>%
+    filter(Trust != "Total") %>%
+    arrange(desc(`Estimated deaths per thousand admissions`))
+  
+  bind_rows(total_row, main_data)
+})
+
 top_worsening <- table_data %>%
   filter(Trend == "▲ Growth") %>%
   select(

@@ -33,6 +33,8 @@ NEG_CLR <- "#991b1b"
 POS_CLR <- "#166534"
 NEG_CLR_LGT <- monochromeR::generate_palette(NEG_CLR, modification = "go_lighter", 2)[2]
 POS_CLR_LGT <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter", 2)[2]
+NEG_CLR_LGT2 <- monochromeR::generate_palette(NEG_CLR, modification = "go_lighter", 4)[2]
+POS_CLR_LGT2 <- monochromeR::generate_palette(POS_CLR, modification = "go_lighter", 4)[2]
 
 PANEL_TITLE_1 <- "At a glance"
 PANEL_TITLE_2 <- "Graphical overview & outlier analysis"

@@ -19,9 +19,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
         tags$p(
           style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
           "This section displays the estimated",
-          tags$strong("delay-related death (*)"),
-          tags$strong(
-            " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
+          tags$strong("Delay-Related Death rate per 1,000 emergency admissions via type-1 A&E departments(*)"
           ),
           " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level via the selectors on the left.",
           "Delays in A&E are shown to increase ",
@@ -119,7 +117,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             class = "toggle-container",
             awesomeRadio(
               inputId = ns("resid"),
-              label = "Display raw or residual (to national baseline) DRD* rate†:",
+              label = "Display raw or residual (to national baseline) Delay-Related Death Rate*:",
               choices = c("Raw", "Residual"),
               selected = "Raw",
               inline = TRUE,
@@ -497,9 +495,9 @@ sysCompServer <- function(id, ts_data, choices_list) {
         coord_cartesian(clip = "off") +
         labs(
           title = if (input$resid == "Residual") {
-            "Monthly DRD* rate† residual to national baseline over latest 12-month period"
+            "Monthly Delay-Related Death Rate* residual to national baseline over latest 12-month period"
           } else {
-            "Monthly DRD* rate† over latest 12-month period"
+            "Monthly Delay-Related Death Rate* over latest 12-month period"
           },
           x = NULL,
           y = NULL

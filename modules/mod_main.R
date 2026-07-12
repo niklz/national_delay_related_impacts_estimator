@@ -18,9 +18,9 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
         tags$p(
           style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
           "This section displays the ",
-          tags$strong("delay-related death (*)"),
+          tags$strong("Delay-Related Death"),
           tags$strong(
-            " rate per 1,000 emergency admissions via type-1 A&E departments(†)"
+            " rate per 1,000 emergency admissions via type-1 A&E departments(*)"
           ),
           " at 3 operational levels: a ",
           tags$strong("Regional"),

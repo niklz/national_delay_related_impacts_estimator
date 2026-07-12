@@ -26,21 +26,21 @@ ui <- page_navbar(
     max_date = max_date,
     SPINNER_TYPE = SPINNER_TYPE,
     title = PANEL_TITLE_1
-  ),
+  )#,
 
-  dashboardUI(
-    id = "main",
-    min_date = min_date,
-    max_date = max_date,
-    SPINNER_TYPE = SPINNER_TYPE,
-    title = PANEL_TITLE_2
-  ),
+  # dashboardUI(
+  #   id = "main",
+  #   min_date = min_date,
+  #   max_date = max_date,
+  #   SPINNER_TYPE = SPINNER_TYPE,
+  #   title = PANEL_TITLE_2
+  # ),
 
-  sysCompUI(
-    id = "sys_comp",
-    SPINNER_TYPE = SPINNER_TYPE,
-    title = PANEL_TITLE_3
-  ),
+  # sysCompUI(
+  #   id = "sys_comp",
+  #   SPINNER_TYPE = SPINNER_TYPE,
+  #   title = PANEL_TITLE_3
+  # ),
   
-  aboutUI(id = "about_page")
+  # aboutUI(id = "about_page")
 )

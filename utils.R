@@ -164,7 +164,7 @@ ts_plot <- ggplot(
       "#e66c25"
     )) +
     coord_cartesian(clip = "off") + 
-    labs(title = str_wrap("DRD* rate† per Region", wrap), x = NULL, y = NULL) +
+    labs(title = str_wrap("Delay-Related Death Rate* per Region", wrap), x = NULL, y = NULL) +
     
     theme_minimal(base_size = base) +
     theme(
@@ -306,7 +306,7 @@ funnel_plot <- function(
     ggplot2::scale_alpha_identity(guide = "none") +
     
     ggplot2::labs(
-      title = str_wrap("DRD* rate† per Trust", wrap),
+      title = str_wrap("Delay-Related Death Rate* per Trust", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 
@@ -408,7 +408,7 @@ choropleth_plot <- function(data, shp, base = 11, wrap = 40) {
       )
     ) +
     labs(
-      title = str_wrap("DRD* rate† per ICB / Cluster", wrap),
+      title = str_wrap("Delay-Related Death Rate* per ICB / Cluster", wrap),
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 80)
     ) +
     theme_void(base_size = base) +

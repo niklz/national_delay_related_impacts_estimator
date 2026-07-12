@@ -23,12 +23,12 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
           "This section displays the total monthly acute emergency admissions via type-1 A&E deparments per Trust for the latest reporting period (",
           tags$strong(format(report_date, "%B %Y")),
           "), alongside the proportion of patients who waited over four hours for admission. It estimates the impact of these delays on the admitted cohort using ",
-          tags$strong("Delay-Related Deaths (*)"),
+          tags$strong("Delay-Related Deaths"),
           ", expressed both as a ",
-          tags$strong("rate per 1,000 admissions (†)"),
+          tags$strong("rate per 1,000 admissions (*)"),
           " and as a total monthly count. Additionally, the ",
-          tags$strong("3-month trend DRD trend (‡)"),
-          " is modeled using regression on seasonally adjusted data. Finally, the top improving and worsening trusts are ranked based on this trend."
+          tags$strong("3-month trend(†) of the Delay-Related Death rate*"),
+          " is modeled using regression on seasonally adjusted data. Finally, the top improving and worsening trusts are ranked based on this trend (decreasing = improving, increasing = worsening)."
         )
       )
     ),
@@ -131,12 +131,14 @@ glanceServer <- function(id) {
     output$overview_table <- renderReactable({
       req(table_data)
 
+
+      browser()
       display_df <- select(
         table_data,
         `Trust`,
         `Total admissions`,
         `Proportion DTA > 4 hours`,
-        `Estimated DRD`,
+        `Estimated Delay-Related Deaths`,
         `Estimated deaths per thousand admissions`,
         `Trend`
       )
@@ -213,10 +215,10 @@ glanceServer <- function(id) {
             )
           ),
 
-          `Estimated DRD` = colDef(show = FALSE),
+          `Estimated Delay-Related Deaths` = colDef(show = FALSE),
 
           `Estimated deaths per thousand admissions` = colDef(
-            name = "Estimated DRD*: Rate† (Total)",
+            name = "Estimated Delay-Related Deaths: Rate* (Total)",
             minWidth = 150,
             headerStyle = list(
               whiteSpace = "normal",
@@ -225,7 +227,7 @@ glanceServer <- function(id) {
               paddingBottom = "4px"
             ),
             cell = function(value, index) {
-              drd_value <- display_df$`Estimated DRD`[index]
+              drd_value <- display_df$`Estimated Delay-Related Deaths`[index]
               is_total <- display_df$Trust[index] == "Total"
 
               if (is.na(value)) {
@@ -251,7 +253,7 @@ glanceServer <- function(id) {
           ),
 
           Trend = colDef(
-            name = "DRD* trend‡",
+            name = "Trend†",
             minWidth = 100,
             headerStyle = list(
               whiteSpace = "normal",
@@ -289,7 +291,7 @@ glanceServer <- function(id) {
     output$top_worsening <- renderReactable({
       req(top_worsening)
 
-      max_pct <- max(abs(top_worsening$`Percent change (DRD)`), na.rm = TRUE)
+      max_pct <- max(abs(top_worsening$`Percent change (Delay-Related Deaths)`), na.rm = TRUE)
 
       reactable(
         top_worsening,
@@ -312,8 +314,8 @@ glanceServer <- function(id) {
 
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change (DRD)` = colDef(
-            name = "Top worsening ‡",
+          `Percent change (Delay-Related Deaths)` = colDef(
+            name = "Top worsening †",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",
@@ -333,7 +335,7 @@ glanceServer <- function(id) {
     output$top_improving <- renderReactable({
       req(top_improving)
 
-      max_pct <- max(abs(top_improving$`Percent change (DRD)`), na.rm = TRUE)
+      max_pct <- max(abs(top_improving$`Percent change (Delay-Related Deaths)`), na.rm = TRUE)
 
       reactable(
         top_improving,
@@ -356,8 +358,8 @@ glanceServer <- function(id) {
 
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 160),
-          `Percent change (DRD)` = colDef(
-            name = "Top improving ‡",
+          `Percent change (Delay-Related Deaths)` = colDef(
+            name = "Top improving †",
             minWidth = 120,
             headerStyle = list(
               whiteSpace = "normal",

@@ -132,24 +132,24 @@ table_data <- local({
       # Region = parent_org,
       `Total admissions` = tot_ae_adm,
       `Number of DTA > 4 hours` = dta_gt4,
-      `Estimated DRD` = excess_mort,
-      `Percent change (DRD)` = trend_velocity_pct,
+      `Estimated Delay-Related Deaths` = excess_mort,
+      `Percent change (Delay-Related Deaths)` = trend_velocity_pct,
       Trend = status_arrow
     ) %>%
     mutate(`Proportion DTA > 4 hours` = 100*(`Number of DTA > 4 hours`/`Total admissions`)) %>%
     mutate(`Estimated deaths per thousand admissions` = case_when(
-      (`Estimated DRD` != 0 & `Total admissions` != 0) ~ 1000*(`Estimated DRD`/`Total admissions`),
-      (`Estimated DRD` == 0 | `Total admissions` ==0) ~ 0,
+      (`Estimated Delay-Related Deaths` != 0 & `Total admissions` != 0) ~ 1000*(`Estimated Delay-Related Deaths`/`Total admissions`),
+      (`Estimated Delay-Related Deaths` == 0 | `Total admissions` ==0) ~ 0,
       .default = 0)
     )%>%
     # FIX: Round the big volume metrics to whole numbers, but keep precision for the percentage!
     mutate(
       across(
-        c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated DRD`),
+        c(`Total admissions`, `Number of DTA > 4 hours`, `Estimated Delay-Related Deaths`),
         ~ round(.x, 0)
       ),
       across(
-      c(`Percent change (DRD)`, `Proportion DTA > 4 hours`),  ~ round(.x, 2)
+      c(`Percent change (Delay-Related Deaths)`, `Proportion DTA > 4 hours`),  ~ round(.x, 2)
     ))
 
   total_row <- processed_data %>% filter(Trust == "Total")
@@ -165,21 +165,21 @@ top_worsening <- table_data %>%
   select(
     -`Total admissions`,
     -`Number of DTA > 4 hours`,
-    -`Estimated DRD`,
+    -`Estimated Delay-Related Deaths`,
     -`Proportion DTA > 4 hours`,
     -`Estimated deaths per thousand admissions`,
     -Trend
   ) %>%
-  arrange(desc(`Percent change (DRD)`))
+  arrange(desc(`Percent change (Delay-Related Deaths)`))
 
 top_improving <- table_data %>%
   filter(Trend == "▼ Decline") %>%
   select(
     -`Total admissions`,
     -`Number of DTA > 4 hours`,
-    -`Estimated DRD`,
+    -`Estimated Delay-Related Deaths`,
     -`Proportion DTA > 4 hours`,
     -`Estimated deaths per thousand admissions`,
     -Trend
   ) %>%
-  arrange(`Percent change (DRD)`)
+  arrange(`Percent change (Delay-Related Deaths)`)

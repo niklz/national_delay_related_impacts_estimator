@@ -15,6 +15,52 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
   nav_panel(
     title = title,
     icon = icon("table"),
+    
+    # Custom CSS to transform folder tabs into modern, sleek underline indicators
+    tags$style(HTML(paste0("
+      /* Remove the bulky background and bottom lines from the tab container header */
+      .card-header {
+        background-color: #ffffff !important;
+        border-bottom: none !important; /* Removed horizontal rule to let active indicator float cleanly */
+        padding-top: 4px !important;
+        padding-bottom: 0px !important;
+      }
+      .card-header .nav-tabs {
+        border-bottom: none !important;
+        gap: 16px;
+      }
+      /* Reset standard tab buttons to be flat/clean */
+      .card-header .nav-tabs .nav-link {
+        border: none !important;
+        border-radius: 0 !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        padding: 12px 4px !important;
+        transition: color 0.2s ease;
+        position: relative;
+        background: transparent !important;
+      }
+      /* Hover states */
+      .card-header .nav-tabs .nav-link:hover {
+        color: #003087 !important;
+      }
+      /* Active tab overrides: no card borders, custom bottom highlight line */
+      .card-header .nav-tabs .nav-link.active {
+        color: #003087 !important;
+      }
+      .card-header .nav-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: #003087;
+        border-radius: 3px 3px 0 0;
+      }
+    "))),
+    
     card(
       fill = FALSE, 
       style = "background-color: #F4F6F9; box-shadow: none;",
@@ -25,21 +71,35 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
         
         tags$p(
           style = "margin: 0; font-size: 16px; color: #334155; line-height: 1.5;",
-          "This section displays the total monthly acute emergency admissions via type-1 A&E deparments per Trust for the latest reporting period (",
+          "This section displays the total monthly acute emergency admissions via type-1 A&E departments per Trust for the latest reporting period (",
           tags$strong(format(report_date, "%B %Y")),
-          "), alongside the proportion of patients who waited over four hours for admission. It estimates the impact of these delays on the admitted cohort using ",
+          "), alongside an analysis of timely admission performance. It estimates the impact of these delays on the admitted cohort using ",
           tags$strong("Delay-Related Deaths"),
           ", expressed both as a ",
-          tags$strong("rate per 1,000 admissions (*)"),
+          tags$strong("rate per 1,000 admissions"),
+          tags$sup("*"),
           " and as a total monthly count. Additionally, the ",
-          tags$strong("3-month trend(†) of the Delay-Related Death rate*"),
-          " is modeled using regression on seasonally adjusted data. Finally, the top improving and worsening trusts are ranked based on this trend (decreasing = improving, increasing = worsening)."
+          tags$strong("3-month trend"),
+          tags$sup("†"),
+          " of the ",
+          tags$strong("Delay-Related Death rate"),
+          tags$sup("*"),
+          " is modeled using regression on seasonally adjusted data."
+        ),
+        tags$p(
+          style = "margin: 10px 0 0 0; font-size: 16px; color: #334155; line-height: 1.5;",
+          "On a second tab, the 3-month admission performance is displayed. Instead of traditional breach counts, we evaluate performance relative to the national benchmark using ",
+          tags$strong("Additional Timely Admissions"),
+          tags$sup("§"),
+          ". This metric calculates the net number of patients admitted within 4 hours compared to what would be expected under average national performance (where positive values indicate delays prevented/timely admissions, and negative values indicate excess delays). Additionally, the trust-specific performance is visually benchmarked against the ",
+          tags$strong("National Average"),
+          " using 3-sigma control limits (confidence intervals) to separate true systemic operational differences from expected statistical variation."
         )
       )
     ),
     
     # ==========================================
-    # SINGLE CARD LAYOUT WITH TABS ON TOP
+    # SINGLE CARD LAYOUT WITH SLEEK HOVER TABS
     # ==========================================
     navset_card_tab(
       full_screen = TRUE,
@@ -47,7 +107,6 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
       # TAB 1: Latest Reporting Period Overview
       nav_panel(
         title = "Latest Monthly A&E Admission Data",
-        # icon = icon("calendar-day"),
         card_body(
           class = "content-card-body",
           div(
@@ -65,7 +124,6 @@ glanceUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
       # TAB 2: 3-Month Performance vs National
       nav_panel(
         title = "3-Month Admission Time Performance vs National",
-        # icon = icon("chart-line"),
         card_body(
           class = "content-card-body",
           div(
@@ -213,7 +271,7 @@ glanceServer <- function(id) {
           ),
           
           Trend = colDef(
-            name = "Trend†",
+            header = function(value) tags$span("Trend", tags$sup("†")),
             minWidth = 100,
             headerStyle = list(
               whiteSpace = "normal",
@@ -329,7 +387,7 @@ glanceServer <- function(id) {
           
           # Whole-number display with thousands separators, keeping native numeric sort intact
           `Total admissions` = colDef(
-            name = "Total Admissions", 
+            name = "Total admissions", 
             minWidth = 100,
             format = colFormat(separators = TRUE, digits = 0)
           ),
@@ -344,7 +402,7 @@ glanceServer <- function(id) {
           
           # Delays Prevented metric (styled + colorized whole numbers)
           Net_Timely = colDef(
-            name = "Additional Timely-Admissions (vs National Performance)", 
+            header = function(value) tags$span("Additional timely admissions", tags$sup("§"), " (vs national performance)"),
             minWidth = 200,
             headerStyle = list(
               whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
@@ -367,7 +425,7 @@ glanceServer <- function(id) {
           
           # The custom "Trust vs National" Gap & Confidence Visual Column
           Visual = colDef(
-            name = ">4hr Admission Breach Performance vs National Average",
+            name = ">4hr admission breach performance vs national average",
             minWidth = 200, 
             headerStyle = list(
               whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
@@ -466,5 +524,14 @@ glanceServer <- function(id) {
         )
       )
     })
+    
+    # ==========================================================================
+    # PERFORMANCE OPTIMIZATION: PRE-RENDER TAB 2
+    # ==========================================================================
+    # Tells Shiny to evaluate and render the 3-month performance table even when
+    # the second tab is hidden. This guarantees the visual renders instantly 
+    # without a loading spinner when clicked.
+    outputOptions(output, "perf_3month", suspendWhenHidden = FALSE)
+    
   })
 }

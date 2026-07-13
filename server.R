@@ -8,5 +8,5 @@ server <- function(input, output, session) {
   glanceServer("at_a_glance")
   dashboardServer("main", max_date = max_date)
   sysCompServer(id = "sys_comp", ts_data = historical_data_r, choices_list = geo_choices)
-  aboutServer(id = "about_page")
+  # aboutServer(id = "about_page")
 }

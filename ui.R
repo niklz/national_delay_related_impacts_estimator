@@ -42,5 +42,8 @@ ui <- page_navbar(
     title = PANEL_TITLE_3
   ),
 
-  aboutUI(id = "about_page")
+  aboutUI(id = "about_page",
+          title_1 = PANEL_TITLE_1,
+          title_2 = PANEL_TITLE_2,
+          title_3 = PANEL_TITLE_3)
 )

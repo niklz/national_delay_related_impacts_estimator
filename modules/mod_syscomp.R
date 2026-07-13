@@ -21,7 +21,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
           "This section displays the estimated",
           tags$strong("Delay-Related Death rate per 1,000 emergency admissions via type-1 A&E departments(*)"
           ),
-          " as a time-series chart. This chart can be used to compare any Region/ICB/Trust to the National baseline level via the selectors on the left.",
+          " as a time-series chart. This chart can be used to compare any Region/ICB/Provider to the National baseline level via the selectors on the left.",
           "Delays in A&E are shown to increase ",
           tags$strong("acute length of stay"),
            ". A second chart displays the average number of ",
@@ -38,7 +38,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
       # CARD 1: Controls & Selectors
       # ==========================================
       card(
-        card_header("Select Region / ICB / Trust to compare:"),
+        card_header("Select Region / ICB / Provider to compare:"),
         card_body(
           selectInput(
             inputId = ns("geo_level"),
@@ -46,7 +46,7 @@ sysCompUI <- function(id, SPINNER_TYPE, title) {
             choices = c(
               "Region" = "region",
               "ICB / cluster" = "cluster",
-              "Trust" = "trust"
+              "Provider" = "trust"
             ),
             selected = "region"
           ),
@@ -347,7 +347,7 @@ sysCompServer <- function(id, ts_data, choices_list) {
 
       min_date <- min(plot_df$Month_Date)
       max_date <- max(plot_df$Month_Date)
-      label_size <- 7
+      label_size <- 5.5
 
       # --- CONVERT TO RESIDUAL VALUES IF TOGGLED ---
       if (input$resid == "Residual") {

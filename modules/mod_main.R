@@ -27,7 +27,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
           " time-series, a geospatial distribution at ",
           tags$strong("ICB / Cluster level"),
           ", and a funnel plot at ",
-          tags$strong("Trust level"),
+          tags$strong("Provider level"),
           ". Chart views can be modified using the selectors at the bottom of the page.",
         )
       )
@@ -161,7 +161,7 @@ dashboardUI <- function(id, min_date, max_date, SPINNER_TYPE, title) {
               style = "flex: 2 1 180px; min-width: 0;",
               shinyWidgets::virtualSelectInput(
                 inputId = ns("highlighted_trusts"),
-                label = "Highlight Trust(s):",
+                label = "Highlight Provider(s):",
                 choices = NULL,
                 multiple = TRUE,
                 search = TRUE,

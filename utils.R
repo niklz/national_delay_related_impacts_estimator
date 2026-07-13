@@ -306,7 +306,7 @@ funnel_plot <- function(
     ggplot2::scale_alpha_identity(guide = "none") +
     
     ggplot2::labs(
-      title = str_wrap("Delay-Related Death Rate* per Trust", wrap),
+      title = str_wrap("Delay-Related Death Rate* per Provider", wrap),
       x = "Total type-1 A&E admissions",
       y = NULL,
       fill = str_wrap("Mortality risk rate (e.g., 1 in 100 admissions)", 60) 

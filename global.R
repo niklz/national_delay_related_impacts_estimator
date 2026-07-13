@@ -166,6 +166,7 @@ table_data_3mo <- local({
   # Assuming ae_impacts is already loaded in your environment
   processed_data <- ae_impacts %>%
     filter(period >= max(period)-dmonths(3)) %>%
+    filter(status_arrow %in% c("▼ Decline","▲ Growth", "■ Stable")) %>%
     select(
       Trust = org,
       `Total admissions` = tot_ae_adm,

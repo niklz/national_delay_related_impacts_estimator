@@ -328,13 +328,15 @@ glanceServer <- function(id) {
       table_data_3mo$Expected <- table_data_3mo$`Total admissions` * global_rate
       
       # Positive = Fewer delays than expected (Good). Negative = More delays (Bad).
-      table_data_3mo$Net_Timely <- table_data_3mo$Expected - table_data_3mo$`Number of DTA > 4 hours`
+      table_data_3mo$net_timely <- table_data_3mo$Expected - table_data_3mo$`Number of DTA > 4 hours`
+      
       
       # Sort: 'Total' at TOP, sort the rest by Net Timely Admissions (Descending)
       is_not_total <- table_data_3mo$Trust != "Total"
-      table_data_3mo <- table_data_3mo[order(is_not_total, -table_data_3mo$Net_Timely), ]
+      table_data_3mo <- table_data_3mo[order(is_not_total, -table_data_3mo$net_timely), ]
       
       table_data_3mo$Visual <- NA 
+      table_data_3mo <- table_data_3mo %>% relocate(net_timely, .after = last_col())
       
       # 2. Render Table
       reactable(
@@ -382,7 +384,7 @@ glanceServer <- function(id) {
         columns = list(
           Trust = colDef(name = "Trust", align = "left", minWidth = 180),
           
-          # Hiding this column as it's represented visually and via Net_Timely
+          # Hiding this column as it's represented visually and via net_timely
           `Number of DTA > 4 hours` = colDef(show = FALSE),
           
           # Whole-number display with thousands separators, keeping native numeric sort intact
@@ -400,33 +402,10 @@ glanceServer <- function(id) {
           Upper = colDef(show = FALSE), 
           Expected = colDef(show = FALSE),
           
-          # Delays Prevented metric (styled + colorized whole numbers)
-          Net_Timely = colDef(
-            header = function(value) tags$span("Additional timely admissions", tags$sup("§"), " (vs national performance)"),
-            minWidth = 200,
-            headerStyle = list(
-              whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
-            ),
-            cell = function(value, index) {
-              if (table_data_3mo$Trust[index] == "Total") return("—") 
-              if (is.na(value)) return("-")
-              
-              rounded_val <- round(value)
-              sign_char <- if (rounded_val > 0) "+" else ""
-              
-              # Using accuracy = 1 safely to avoid division-by-zero crashes
-              formatted_val <- paste0(sign_char, scales::comma(rounded_val, accuracy = 1))
-              
-              color <- if (rounded_val > 0) POS_CLR_LGT2 else if (rounded_val < 0) NEG_CLR_LGT2 else "#64748b"
-              
-              div(style = list(color = color, fontWeight = "bold"), formatted_val)
-            }
-          ),
-          
           # The custom "Trust vs National" Gap & Confidence Visual Column
           Visual = colDef(
             name = ">4hr admission breach performance vs national average",
-            minWidth = 200, 
+            minWidth = 180, 
             headerStyle = list(
               whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
             ),
@@ -519,6 +498,28 @@ glanceServer <- function(id) {
                     }
                   )
               )
+            }
+          ),
+          # Delays Prevented metric (styled + colorized whole numbers)
+          net_timely = colDef(
+            header = function(value) tags$span("Additional timely admissions", tags$sup("§"), " (vs national performance)"),
+            minWidth = 200,
+            headerStyle = list(
+              whiteSpace = "normal", wordBreak = "normal", lineHeight = "1.2", paddingBottom = "4px"
+            ),
+            cell = function(value, index) {
+              if (table_data_3mo$Trust[index] == "Total") return("—") 
+              if (is.na(value)) return("-")
+              
+              rounded_val <- round(value)
+              sign_char <- if (rounded_val > 0) "+" else ""
+              
+              # Using accuracy = 1 safely to avoid division-by-zero crashes
+              formatted_val <- paste0(sign_char, scales::comma(rounded_val, accuracy = 1))
+              
+              color <- if (rounded_val > 0) POS_CLR_LGT2 else if (rounded_val < 0) NEG_CLR_LGT2 else "#64748b"
+              
+              div(style = list(color = color, fontWeight = "bold"), formatted_val)
             }
           )
         )
